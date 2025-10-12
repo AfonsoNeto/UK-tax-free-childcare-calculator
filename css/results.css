@@ -1,0 +1,32 @@
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.result-item:last-child {
+  border-bottom: none;
+}
+
+.result-label {
+  font-weight: 500;
+  color: #2D3748;
+}
+
+.result-value {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.result-value.user-pays {
+  color: #2F855A;
+}
+
+.result-value.gov-pays {
+  color: #2B6CB0;
+}
+
+.result-value.total {
+  color: #C53030;
+}
