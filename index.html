@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UK Tax-Free Childcare Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .card {
+      background-color: white;
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      padding: 2rem;
+      transition: all 0.3s ease-in-out;
+    }
+    .card:hover {
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .input-group {
+      margin-bottom: 1.5rem;
+    }
+    .label {
+      display: block;
+      color: #4A5568;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    .input, .select {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 0.375rem;
+      border: 1px solid #E2E8F0;
+      background-color: #F7FAFC;
+      transition: border-color 0.2s;
+    }
+    .input:focus, .select:focus {
+      outline: none;
+      border-color: #4299E1;
+      box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+    }
+    .day-rate-input {
+      display: flex;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+    .day-rate-input input {
+      margin-left: 0.5rem;
+    }
+    .results-card {
+      margin-top: 2rem;
+      border-top: 3px solid #4299E1;
+    }
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 1rem 0;
+      border-bottom: 1px solid #E2E8F0;
+    }
+    .result-item:last-child {
+      border-bottom: none;
+    }
+    .result-label {
+      font-weight: 500;
+      color: #2D3748;
+    }
+    .result-value {
+      font-weight: 700;
+      font-size: 1.25rem;
+    }
+    .result-value.user-pays {
+      color: #2F855A;
+    }
+    .result-value.gov-pays {
+      color: #2B6CB0;
+    }
+    .result-value.total {
+      color: #C53030;
+    }
+    .info-box {
+      background-color: #EBF8FF;
+      border-left: 4px solid #4299E1;
+      padding: 1rem;
+      margin-top: 2rem;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      color: #2C5282;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  
+  <div class="max-w-4xl w-full mx-auto">
+    <div class="card">
+      <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Tax-Free Childcare Calculator</h1>
+      <p class="text-center text-gray-500 mb-8">Estimate your monthly nursery costs and government contribution.</p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Left Column: Inputs -->
+        <div>
+          <!-- Month and Year Selection -->
+          <div class="input-group">
+            <label for="month-year" class="label">Select Month and Year</label>
+            <input type="month" id="month-year" class="input">
+          </div>
+          
+          <!-- Government Contribution Input -->
+          <div class="input-group">
+            <label for="gov-contribution" class="label">Government Contribution (Current 3-month period)</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">£</span>
+              <input type="number" id="gov-contribution" class="input pl-8" placeholder="0.00" value="0" min="0" step="0.01">
+            </div>
+          </div>
+          
+          <!-- Days of the Week Selection -->
+          <div class="input-group">
+            <label class="label">Select Nursery Days & Daily Rates</label>
+            <div id="days-container" class="space-y-3">
+              <!-- JS will populate this -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Right Column: Results -->
+        <div class="flex flex-col">
+          <div id="results-container" class="results-card card flex-grow hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Your Estimated Costs</h2>
+            <div id="results-breakdown">
+              <!-- JS will populate this -->
+            </div>
+          </div>
+          <div class="info-box mt-auto">
+            <p>The government contributes 20% of your childcare costs, up to a maximum of £500 every 3 months (£2,000 a year) for each child.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const monthYearInput = document.getElementById('month-year');
+      const govContributionInput = document.getElementById('gov-contribution');
+      const daysContainer = document.getElementById('days-container');
+      const resultsContainer = document.getElementById('results-container');
+      const resultsBreakdown = document.getElementById('results-breakdown');
+      
+      const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      
+      // Initialize with current month and year
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = (now.getMonth() + 1).toString().padStart(2, '0');
+      monthYearInput.value = `${year}-${month}`;
+      
+      // Populate days of the week
+      daysOfWeek.forEach(day => {
+        const dayId = day.toLowerCase();
+        const element = document.createElement('div');
+        element.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-md';
+        element.innerHTML = `
+          <div class="flex items-center">
+              <input type="checkbox" id="${dayId}-check" name="day" value="${day}" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+              <label for="${dayId}-check" class="ml-3 text-sm font-medium text-gray-700">${day}</label>
+          </div>
+          <div class="relative day-rate-input hidden">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-sm">£</span>
+              <input type="number" id="${dayId}-rate" class="input pl-7 w-28 text-sm" placeholder="Rate" min="0" step="0.01" disabled>
+          </div>
+        `;
+        daysContainer.appendChild(element);
+      });
+      
+      // Event Listeners
+      monthYearInput.addEventListener('change', calculate);
+      govContributionInput.addEventListener('input', calculate);
+      daysContainer.addEventListener('change', (e) => {
+        if (e.target.type === 'checkbox') {
+          const rateInputDiv = e.target.closest('div').nextElementSibling;
+          const rateInput = rateInputDiv.querySelector('input');
+          if (e.target.checked) {
+            rateInputDiv.classList.remove('hidden');
+            rateInput.disabled = false;
+            rateInput.focus();
+          } else {
+            rateInputDiv.classList.add('hidden');
+            rateInput.disabled = true;
+            rateInput.value = '';
+          }
+        }
+        calculate();
+      });
+      daysContainer.addEventListener('input', (e) => {
+        if (e.target.type === 'number') {
+          calculate();
+        }
+      });
+      
+      // Initial calculation
+      calculate();
+      
+      function calculate() {
+        const [year, month] = monthYearInput.value.split('-').map(Number);
+        if (!year || !month) {
+          resultsContainer.classList.add('hidden');
+          return;
+        }
+        
+        const govContributionSoFar = parseFloat(govContributionInput.value) || 0;
+        const daysInMonth = new Date(year, month, 0).getDate();
+        let totalMonthlyCost = 0;
+        let calculationDetails = [];
+        
+        daysOfWeek.forEach((day, index) => {
+          const dayCheckbox = document.getElementById(`${day.toLowerCase()}-check`);
+          if (dayCheckbox.checked) {
+            const dayRateInput = document.getElementById(`${day.toLowerCase()}-rate`);
+            const dailyRate = parseFloat(dayRateInput.value) || 0;
+            
+            if (dailyRate > 0) {
+              let count = 0;
+              for (let i = 1; i <= daysInMonth; i++) {
+                const date = new Date(year, month - 1, i);
+                // JS day index: Sun=0, Mon=1...Sat=6. We want Mon=1, Tue=2...
+                const dayIndex = (date.getDay() === 0) ? 7 : date.getDay();
+                if (dayIndex === index + 1) {
+                  count++;
+                }
+              }
+              totalMonthlyCost += count * dailyRate;
+              calculationDetails.push({ day, count, dailyRate });
+            }
+          }
+        });
+        
+        if (totalMonthlyCost === 0) {
+          resultsContainer.classList.add('hidden');
+          return;
+        }
+        
+        resultsContainer.classList.remove('hidden');
+        
+        const maxGovContributionPerPeriod = 500;
+        const govTopUpPercentage = 0.20;
+        
+        const potentialGovContribution = totalMonthlyCost * govTopUpPercentage;
+        const remainingGovAllowance = Math.max(0, maxGovContributionPerPeriod - govContributionSoFar);
+        const actualGovContribution = Math.min(potentialGovContribution, remainingGovAllowance);
+        const userPays = totalMonthlyCost - actualGovContribution;
+        
+        displayResults(totalMonthlyCost, actualGovContribution, userPays);
+      }
+      
+      function displayResults(total, govPays, userPays) {
+        resultsBreakdown.innerHTML = `
+          <div class="result-item">
+              <span class="result-label">Total Monthly Cost</span>
+              <span class="result-value total">£${total.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+              <span class="result-label">Government Contribution</span>
+              <span class="result-value gov-pays">£${govPays.toFixed(2)}</span>
+          </div>
+          <div class="result-item">
+              <span class="result-label">You Pay</span>
+              <span class="result-value user-pays">£${userPays.toFixed(2)}</span>
+          </div>
+      `;
+      }
+    });
+  </script>
+</body>
+</html>
