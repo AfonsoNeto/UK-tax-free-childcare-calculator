@@ -1,0 +1,77 @@
+body.dark-theme {
+  --bg-color: #1a202c;
+  --card-bg-color: #2d3748;
+  --text-color: #e2e8f0;
+  --text-gray-500: #a0aec0;
+  --input-bg-color: #4a5568;
+  --input-text-color: #e2e8f0;
+  --border-color: #4a5568;
+
+  background-color: var(--bg-color);
+}
+
+.dark-theme .card {
+  background-color: var(--card-bg-color);
+  color: var(--text-color);
+}
+
+.dark-theme h1, .dark-theme h2, .dark-theme h3, .dark-theme label {
+  color: var(--text-color);
+}
+
+.dark-theme p, .dark-theme .text-gray-500 {
+  color: var(--text-gray-500);
+}
+
+.dark-theme .input {
+  background-color: var(--input-bg-color);
+  color: var(--input-text-color);
+  border-color: var(--border-color);
+}
+
+.dark-theme .results-card {
+  border-color: var(--border-color);
+}
+
+.dark-theme .info-box {
+  background-color: var(--card-bg-color);
+}
+
+.dark-theme #optimization-details {
+  background-color: rgba(66, 153, 225, 0.1);
+}
+
+.dark-theme #days-container .flex {
+  background-color: var(--input-bg-color);
+}
+
+.dark-theme #days-container label {
+  color: var(--text-color);
+}
+
+.dark-theme .result-item .result-label,
+.dark-theme .result-item .result-value {
+  color: var(--text-color);
+}
+
+.dark-theme #optimization-container h3,
+.dark-theme #optimization-details,
+.dark-theme #optimization-details strong {
+  color: var(--text-color);
+}
+
+.dark-theme .result-value.user-pays {
+  color: #68D391;
+}
+
+.dark-theme .result-value.gov-pays {
+  color: #63B3ED;
+}
+
+.dark-theme .result-value.total {
+  color: #FC8181;
+}
+
+.dark-theme body {
+  background-color: var(--bg-color);
+}

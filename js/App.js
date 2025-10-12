@@ -1,10 +1,12 @@
 import { UI } from './UI.js';
 import { CostCalculator } from './CostCalculator.js';
+import { ThemeSwitcher } from './ThemeSwitcher.js';
 
 export class App {
   constructor() {
     this.ui = new UI();
     this.calculator = CostCalculator;
+    this.themeSwitcher = new ThemeSwitcher();
   }
 
   init() {
@@ -12,6 +14,7 @@ export class App {
       this.ui.init();
       this.addEventListeners();
       this.calculate();
+      this.themeSwitcher.init();
     });
   }
 
