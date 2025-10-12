@@ -84,10 +84,57 @@
       background-color: #EBF8FF;
       border-left: 4px solid #4299E1;
       padding: 1rem;
-      margin-top: 2rem;
+      margin-top: 1rem;
       border-radius: 0.375rem;
       font-size: 0.875rem;
       color: #2C5282;
+    }
+    .gemini-btn {
+      background: linear-gradient(to right, #6366f1, #8b5cf6);
+      color: white;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      transition: all 0.3s ease;
+      width: 100%;
+      margin-top: 1.5rem;
+      border: none;
+      cursor: pointer;
+    }
+    .gemini-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .gemini-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #gemini-tips-container {
+      background-color: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    #gemini-tips-content ul {
+      list-style-type: disc;
+      padding-left: 1.5rem;
+      margin-top: 1rem;
+      color: #4A5568;
+      line-height: 1.6;
+    }
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: #6366f1;
+      animation: spin 1s ease infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -125,14 +172,29 @@
           </div>
         </div>
         
-        <!-- Right Column: Results -->
+        <!-- Right Column: Results & Gemini Feature -->
         <div class="flex flex-col">
           <div id="results-container" class="results-card card flex-grow hidden">
             <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Your Estimated Costs</h2>
             <div id="results-breakdown">
               <!-- JS will populate this -->
             </div>
+            <div id="optimization-container" class="mt-6 pt-4 border-t border-gray-200 hidden">
+              <h3 class="text-lg font-semibold text-gray-700 text-center mb-2">Maximize Your Benefit</h3>
+              <div id="optimization-details" class="text-sm text-center text-gray-600 p-2 bg-indigo-50 rounded-lg">
+                <!-- JS will populate this -->
+              </div>
+            </div>
           </div>
+          
+          <button id="get-tips-btn" class="gemini-btn hidden">✨ Get Personalised Cost-Saving Tips</button>
+          
+          <div id="gemini-tips-container" class="hidden">
+            <h3 class="text-xl font-bold text-gray-800 text-center">✨ Your Financial Assistant Suggests</h3>
+            <div id="gemini-tips-content"></div>
+            <div id="loading-spinner" class="spinner hidden"></div>
+          </div>
+          
           <div class="info-box mt-auto">
             <p>The government contributes 20% of your childcare costs, up to a maximum of £500 every 3 months (£2,000 a year) for each child.</p>
           </div>
@@ -143,13 +205,21 @@
   
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // DOM Elements
       const monthYearInput = document.getElementById('month-year');
       const govContributionInput = document.getElementById('gov-contribution');
       const daysContainer = document.getElementById('days-container');
       const resultsContainer = document.getElementById('results-container');
       const resultsBreakdown = document.getElementById('results-breakdown');
+      const getTipsBtn = document.getElementById('get-tips-btn');
+      const geminiTipsContainer = document.getElementById('gemini-tips-container');
+      const geminiTipsContent = document.getElementById('gemini-tips-content');
+      const loadingSpinner = document.getElementById('loading-spinner');
+      const optimizationContainer = document.getElementById('optimization-container');
+      const optimizationDetails = document.getElementById('optimization-details');
       
       const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      let lastCalculation = {};
       
       // Initialize with current month and year
       const now = new Date();
@@ -157,7 +227,7 @@
       const month = (now.getMonth() + 1).toString().padStart(2, '0');
       monthYearInput.value = `${year}-${month}`;
       
-      // Populate days of the week
+      // Populate days of the week selectors
       daysOfWeek.forEach(day => {
         const dayId = day.toLowerCase();
         const element = document.createElement('div');
@@ -195,54 +265,77 @@
         calculate();
       });
       daysContainer.addEventListener('input', (e) => {
-        if (e.target.type === 'number') {
-          calculate();
-        }
+        if (e.target.type === 'number') calculate();
       });
+      getTipsBtn.addEventListener('click', fetchGeminiTips);
       
       // Initial calculation
       calculate();
+      
+      function getQuarterInfo(year, month) {
+        const monthIndex = month - 1; // 0-indexed
+        const quarter = Math.floor(monthIndex / 3);
+        const startMonth = quarter * 3;
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        
+        return {
+          quarter,
+          months: [startMonth, startMonth + 1, startMonth + 2],
+          periodName: `${monthNames[startMonth]} - ${monthNames[startMonth + 2]}`
+        };
+      }
+      
+      function calculateMonthlyCost(year, month, dayRates) {
+        let cost = 0;
+        const daysInMonth = new Date(year, month, 0).getDate();
+        for (let i = 1; i <= daysInMonth; i++) {
+          const date = new Date(year, month - 1, i);
+          const dayIndex = date.getDay(); // Sun=0, Mon=1
+          const dayName = daysOfWeek[dayIndex - 1];
+          if (dayRates[dayName]) {
+            cost += dayRates[dayName];
+          }
+        }
+        return cost;
+      }
       
       function calculate() {
         const [year, month] = monthYearInput.value.split('-').map(Number);
         if (!year || !month) {
           resultsContainer.classList.add('hidden');
+          getTipsBtn.classList.add('hidden');
+          optimizationContainer.classList.add('hidden');
           return;
         }
         
         const govContributionSoFar = parseFloat(govContributionInput.value) || 0;
-        const daysInMonth = new Date(year, month, 0).getDate();
-        let totalMonthlyCost = 0;
-        let calculationDetails = [];
         
-        daysOfWeek.forEach((day, index) => {
+        const currentDayRates = {};
+        let hasInputs = false;
+        daysOfWeek.forEach(day => {
           const dayCheckbox = document.getElementById(`${day.toLowerCase()}-check`);
           if (dayCheckbox.checked) {
             const dayRateInput = document.getElementById(`${day.toLowerCase()}-rate`);
             const dailyRate = parseFloat(dayRateInput.value) || 0;
-            
             if (dailyRate > 0) {
-              let count = 0;
-              for (let i = 1; i <= daysInMonth; i++) {
-                const date = new Date(year, month - 1, i);
-                // JS day index: Sun=0, Mon=1...Sat=6. We want Mon=1, Tue=2...
-                const dayIndex = (date.getDay() === 0) ? 7 : date.getDay();
-                if (dayIndex === index + 1) {
-                  count++;
-                }
-              }
-              totalMonthlyCost += count * dailyRate;
-              calculationDetails.push({ day, count, dailyRate });
+              currentDayRates[day] = dailyRate;
+              hasInputs = true;
             }
           }
         });
         
-        if (totalMonthlyCost === 0) {
+        if (!hasInputs) {
           resultsContainer.classList.add('hidden');
+          getTipsBtn.classList.add('hidden');
+          geminiTipsContainer.classList.add('hidden');
+          optimizationContainer.classList.add('hidden');
           return;
         }
         
+        const totalMonthlyCost = calculateMonthlyCost(year, month, currentDayRates);
+        
         resultsContainer.classList.remove('hidden');
+        getTipsBtn.classList.remove('hidden');
         
         const maxGovContributionPerPeriod = 500;
         const govTopUpPercentage = 0.20;
@@ -252,7 +345,46 @@
         const actualGovContribution = Math.min(potentialGovContribution, remainingGovAllowance);
         const userPays = totalMonthlyCost - actualGovContribution;
         
+        lastCalculation = { totalMonthlyCost, userPays, selectedDays: Object.keys(currentDayRates).join(', ') };
         displayResults(totalMonthlyCost, actualGovContribution, userPays);
+        
+        // --- Optimization Calculation ---
+        const quarterInfo = getQuarterInfo(year, month);
+        let totalQuarterlyCost = 0;
+        quarterInfo.months.forEach(monthIndex => {
+          totalQuarterlyCost += calculateMonthlyCost(year, monthIndex + 1, currentDayRates);
+        });
+        
+        const requiredTotalCostForMax = 2500; // £2000 user payment + £500 gov top-up
+        
+        optimizationContainer.classList.remove('hidden');
+        
+        if (totalQuarterlyCost >= requiredTotalCostForMax) {
+          optimizationDetails.innerHTML = `
+            For the <strong>${quarterInfo.periodName}</strong> period, your estimated cost is <strong>£${totalQuarterlyCost.toFixed(2)}</strong>.
+            You're on track to receive the full <strong>£500</strong> government top-up!
+          `;
+        } else {
+          const shortfall = requiredTotalCostForMax - totalQuarterlyCost;
+          const userContributionShortfall = shortfall * (1 - govTopUpPercentage); // User needs to pay 80% of the shortfall
+          const extraGovTopUp = shortfall * govTopUpPercentage; // Gov will add the other 20%
+          
+          const currentMonthIndex = month - 1;
+          const remainingMonthsInQuarter = quarterInfo.months.filter(m => m >= currentMonthIndex);
+          const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+          
+          if (remainingMonthsInQuarter.length > 0) {
+            const extraPerMonth = userContributionShortfall / remainingMonthsInQuarter.length;
+            const monthlyBreakdown = remainingMonthsInQuarter.map(mIndex => 
+            `<strong>£${extraPerMonth.toFixed(2)}</strong> in ${monthNames[mIndex]}`
+            ).join(', ');
+            
+            optimizationDetails.innerHTML = `
+                For <strong>${quarterInfo.periodName}</strong>, your cost is <strong>£${totalQuarterlyCost.toFixed(2)}</strong>. To get the full £500 top-up, you could contribute an extra ${monthlyBreakdown}.
+                This would unlock an additional <strong>£${extraGovTopUp.toFixed(2)}</strong> from the government.
+            `;
+          }
+        }
       }
       
       function displayResults(total, govPays, userPays) {
@@ -271,7 +403,68 @@
           </div>
       `;
       }
-    });
-  </script>
-</body>
-</html>
+      
+      async function fetchGeminiTips() {
+        const { totalMonthlyCost, userPays, selectedDays } = lastCalculation;
+        if (!totalMonthlyCost) return;
+        
+        const prompt = `Act as a helpful financial assistant for parents in the UK. My estimated total monthly childcare cost is £${totalMonthlyCost.toFixed(2)}, and I personally pay £${userPays.toFixed(2)} after the government's tax-free childcare contribution. My child attends nursery on these days: ${selectedDays}. Please provide 3-5 creative and practical, bullet-pointed tips for saving money on childcare costs in the UK. The tips should be relevant to my situation. Do not use markdown formatting for the title.`;
+        
+        geminiTipsContainer.classList.remove('hidden');
+        geminiTipsContent.innerHTML = '';
+        loadingSpinner.classList.remove('hidden');
+        getTipsBtn.disabled = true;
+        
+        try {
+          const result = await callGeminiAPI(prompt);
+          const formattedText = result.replace(/\*/g, '<li>');
+            geminiTipsContent.innerHTML = `<ul>${formattedText}</ul>`;
+          } catch (error) {
+            console.error('Gemini API call failed:', error);
+            geminiTipsContent.innerHTML = `<p class="text-red-500 text-center">Sorry, I couldn't fetch tips at the moment. Please try again later.</p>`;
+          } finally {
+            loadingSpinner.classList.add('hidden');
+            getTipsBtn.disabled = false;
+          }
+        }
+        
+        async function callGeminiAPI(prompt, retries = 3, delay = 1000) {
+          const apiKey = ""; // Leave as-is
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+          
+          const payload = {
+            contents: [{ parts: [{ text: prompt }] }],
+          };
+          
+          for (let i = 0; i < retries; i++) {
+            try {
+              const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              
+              const result = await response.json();
+              const candidate = result.candidates?.[0];
+              
+              if (candidate && candidate.content?.parts?.[0]?.text) {
+                return candidate.content.parts[0].text;
+              } else {
+                throw new Error('Invalid response structure from API');
+              }
+            } catch (error) {
+              console.error(`Attempt ${i + 1} failed. Retrying in ${delay}ms...`, error);
+              if (i === retries - 1) throw error;
+              await new Promise(resolve => setTimeout(resolve, delay));
+              delay *= 2; // Exponential backoff
+            }
+          }
+        }
+      });
+    </script>
+  </body>
+  </html>
