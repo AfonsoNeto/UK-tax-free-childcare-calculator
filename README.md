@@ -1,5 +1,7 @@
 # UK Tax-Free Childcare Calculator
 
+![Application Screenshot](images/screenshot.png)
+
 A simple web application to help UK parents estimate their monthly nursery costs and the government's contribution through the Tax-Free Childcare scheme.
 
 ## Features
