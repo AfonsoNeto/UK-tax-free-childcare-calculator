@@ -10,6 +10,7 @@ A simple web application to help UK parents estimate their monthly nursery costs
 - Factor in the 20% government top-up.
 - Show the breakdown of the user's share and the government's share.
 - Provides an optimization hint to maximize the government benefit.
+- **Theme Switcher:** Toggle between light and dark modes for comfortable viewing.
 
 ## How to Use
 
@@ -56,3 +57,4 @@ A simple web application to help UK parents estimate their monthly nursery costs
 - HTML
 - CSS
 - JavaScript
+- Tailwind CSS
