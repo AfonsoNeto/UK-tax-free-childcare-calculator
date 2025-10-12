@@ -174,12 +174,12 @@
         element.className = 'flex items-center justify-between bg-gray-50 p-3 rounded-md';
         element.innerHTML = `
           <div class="flex items-center">
-              <input type="checkbox" id="${dayId}-check" name="day" value="${day}" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-              <label for="${dayId}-check" class="ml-3 text-sm font-medium text-gray-700">${day}</label>
+            <input type="checkbox" id="${dayId}-check" name="day" value="${day}" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+            <label for="${dayId}-check" class="ml-3 text-sm font-medium text-gray-700">${day}</label>
           </div>
           <div class="relative day-rate-input hidden">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-sm">£</span>
-              <input type="number" id="${dayId}-rate" class="input pl-7 w-28 text-sm" placeholder="Rate" min="0" step="0.01" disabled>
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 text-sm">£</span>
+            <input type="number" id="${dayId}-rate" class="input pl-7 w-28 text-sm" placeholder="Rate" min="0" step="0.01" disabled>
           </div>
         `;
         daysContainer.appendChild(element);
@@ -280,9 +280,8 @@
         const actualGovContribution = Math.min(potentialGovContribution, remainingGovAllowance);
         const userPays = totalMonthlyCost - actualGovContribution;
         
-        displayResults(totalMonthlyCost, actualGovContribution, userPays);
-        
         // --- Optimization Calculation ---
+        let extraForCurrentMonth = 0;
         const quarterInfo = getQuarterInfo(year, month);
         let totalQuarterlyCost = 0;
         quarterInfo.months.forEach(monthIndex => {
@@ -309,6 +308,7 @@
           
           if (remainingMonthsInQuarter.length > 0) {
             const extraPerMonth = userContributionShortfall / remainingMonthsInQuarter.length;
+            extraForCurrentMonth = extraPerMonth;
             const monthlyBreakdown = remainingMonthsInQuarter.map(mIndex => 
             `<strong>£${extraPerMonth.toFixed(2)}</strong> in ${monthNames[mIndex]}`
             ).join(', ');
@@ -319,23 +319,29 @@
             `;
           }
         }
+        displayResults(totalMonthlyCost, actualGovContribution, userPays, extraForCurrentMonth);
       }
       
-      function displayResults(total, govPays, userPays) {
+      function displayResults(total, govPays, userPays, extraContribution) {
+        const maximizedUserPays = userPays + extraContribution;
         resultsBreakdown.innerHTML = `
           <div class="result-item">
-              <span class="result-label">Total Monthly Cost</span>
-              <span class="result-value total">£${total.toFixed(2)}</span>
+            <span class="result-label">Total Monthly Cost</span>
+            <span class="result-value total">£${total.toFixed(2)}</span>
           </div>
           <div class="result-item">
-              <span class="result-label">Government Contribution</span>
-              <span class="result-value gov-pays">£${govPays.toFixed(2)}</span>
+            <span class="result-label">Government Contribution</span>
+            <span class="result-value gov-pays">£${govPays.toFixed(2)}</span>
           </div>
           <div class="result-item">
-              <span class="result-label">You Pay</span>
-              <span class="result-value user-pays">£${userPays.toFixed(2)}</span>
+            <span class="result-label">You Pay</span>
+            <span class="result-value user-pays">£${userPays.toFixed(2)}</span>
           </div>
-        `;
+          <div class="result-item">
+            <span class="result-label" title="This is your monthly payment plus any extra needed to get the full £500 government top-up for the quarter.">You Pay (Maximized Benefit)</span>
+            <span class="result-value user-pays">£${maximizedUserPays.toFixed(2)}</span>
+          </div>
+      `;
       }
     });
   </script>
