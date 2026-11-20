@@ -10,6 +10,7 @@ A simple web application to help UK parents estimate their monthly nursery costs
 - Amounts are displayed with thousands separators (e.g. £1,092.35); they are stored as integer pence internally to avoid rounding drift.
 - **Monthly total input:** enter the full amount from your monthly nursery invoice instead of digging out the daily rate.
 - Factor in the 20% government top-up.
+- **Configurable top-up period:** the £500 cap runs per 3-month period, anchored to the month you opened your childcare account rather than calendar quarters — set it in Settings, and the remaining allowance is shown under the government contribution input.
 - Show the breakdown of the user's share and the government's share.
 - Provides an optimization hint to maximize the government benefit.
 - **Month history:** save each calculated month (total cost, government contribution, amount paid) to your browser and browse it in a table, in a collapsible section below the calculator so the core stays front and centre.
