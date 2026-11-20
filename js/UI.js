@@ -1,4 +1,5 @@
 import { DAYS_OF_WEEK, MONTH_NAMES } from './config.js';
+import { formatGBP } from './format.js';
 
 export class UI {
   constructor() {
@@ -72,23 +73,28 @@ export class UI {
     });
   }
 
+  // User-facing inputs are in pounds; convert to the integer pence used internally.
+  static poundsToPence(value) {
+    return Math.round((parseFloat(value) || 0) * 100);
+  }
+
   getInputs() {
     const [year, month] = this.monthYearInput.value.split('-').map(Number);
-    const govContributionSoFar = parseFloat(this.govContributionInput.value) || 0;
+    const govContributionSoFar = UI.poundsToPence(this.govContributionInput.value);
 
     const currentDayRates = {};
     let totalMonthlyCost = 0;
     let hasInputs = false;
 
     if (this.getMode() === 'monthly') {
-      totalMonthlyCost = parseFloat(this.monthlyTotalInput.value) || 0;
+      totalMonthlyCost = UI.poundsToPence(this.monthlyTotalInput.value);
       hasInputs = totalMonthlyCost > 0;
     } else {
       DAYS_OF_WEEK.forEach(day => {
         const dayCheckbox = document.getElementById(`${day.toLowerCase()}-check`);
         if (dayCheckbox.checked) {
           const dayRateInput = document.getElementById(`${day.toLowerCase()}-rate`);
-          const dailyRate = parseFloat(dayRateInput.value) || 0;
+          const dailyRate = UI.poundsToPence(dayRateInput.value);
           if (dailyRate > 0) {
             currentDayRates[day] = dailyRate;
             hasInputs = true;
@@ -130,7 +136,7 @@ export class UI {
         checkbox.checked = hasRate;
         this.toggleRateInput(checkbox, false);
       }
-      rateInput.value = hasRate ? dayRates[day] : '';
+      rateInput.value = hasRate ? dayRates[day] / 100 : '';
     });
   }
 
@@ -146,9 +152,9 @@ export class UI {
       return `
         <tr data-month="${key}">
           <td>${label}</td>
-          <td class="num">£${entry.totalMonthlyCost.toFixed(2)}</td>
-          <td class="num">£${entry.govContribution.toFixed(2)}</td>
-          <td class="num">£${entry.userPays.toFixed(2)}</td>
+          <td class="num">${formatGBP(entry.totalMonthlyCost)}</td>
+          <td class="num">${formatGBP(entry.govContribution)}</td>
+          <td class="num">${formatGBP(entry.userPays)}</td>
           <td class="actions">
             <button type="button" class="btn btn-small btn-secondary" data-action="load" data-month="${key}">Load</button>
             <button type="button" class="btn btn-small btn-danger" data-action="delete" data-month="${key}">Delete</button>
@@ -176,19 +182,19 @@ export class UI {
     this.resultsBreakdown.innerHTML = `
       <div class="result-item">
         <span class="result-label">Total Monthly Cost</span>
-        <span class="result-value total">£${totalMonthlyCost.toFixed(2)}</span>
+        <span class="result-value total">${formatGBP(totalMonthlyCost)}</span>
       </div>
       <div class="result-item">
         <span class="result-label">Government Contribution</span>
-        <span class="result-value gov-pays">£${actualGovContribution.toFixed(2)}</span>
+        <span class="result-value gov-pays">${formatGBP(actualGovContribution)}</span>
       </div>
       <div class="result-item">
         <span class="result-label">You Pay</span>
-        <span class="result-value user-pays">£${userPays.toFixed(2)}</span>
+        <span class="result-value user-pays">${formatGBP(userPays)}</span>
       </div>
       <div class="result-item">
         <span class="result-label" title="This is your monthly payment plus any extra needed to get the full £500 government top-up for the quarter.">You Pay (Maximized Benefit)</span>
-        <span class="result-value user-pays">£${maximizedUserPays.toFixed(2)}</span>
+        <span class="result-value user-pays">${formatGBP(maximizedUserPays)}</span>
       </div>
     `;
   }
@@ -196,13 +202,13 @@ export class UI {
   displayOptimization(optimization) {
     if (optimization.onTrack) {
       this.optimizationDetails.innerHTML = `
-        For the <strong>${optimization.periodName}</strong> period, your estimated cost is <strong>£${optimization.totalQuarterlyCost.toFixed(2)}</strong>.
+        For the <strong>${optimization.periodName}</strong> period, your estimated cost is <strong>${formatGBP(optimization.totalQuarterlyCost)}</strong>.
         You're on track to receive the full <strong>£500</strong> government top-up!
       `;
     } else {
       this.optimizationDetails.innerHTML = `
-        For <strong>${optimization.periodName}</strong>, your cost is <strong>£${optimization.totalQuarterlyCost.toFixed(2)}</strong>. To get the full £500 top-up, you could contribute an extra ${optimization.monthlyBreakdown}.
-        This would unlock an additional <strong>£${optimization.extraGovTopUp.toFixed(2)}</strong> from the government.
+        For <strong>${optimization.periodName}</strong>, your cost is <strong>${formatGBP(optimization.totalQuarterlyCost)}</strong>. To get the full £500 top-up, you could contribute an extra ${optimization.monthlyBreakdown}.
+        This would unlock an additional <strong>${formatGBP(optimization.extraGovTopUp)}</strong> from the government.
       `;
     }
   }
