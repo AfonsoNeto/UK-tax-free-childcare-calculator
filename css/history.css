@@ -58,6 +58,7 @@
 .history-table th {
   font-weight: 600;
   color: #4A5568;
+  text-align: left;
 }
 
 .history-table td.num,
