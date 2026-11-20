@@ -98,20 +98,27 @@
         </div>
       </div>
 
-      <!-- Month History -->
-      <div id="history-container" class="mt-10 pt-6 border-t border-gray-200">
-        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-          <h2 class="text-2xl font-bold text-gray-800">History</h2>
-          <div class="flex gap-2">
+      <!-- Advanced sections: collapsed by default so the core calculator stays front and centre -->
+      <details class="adv-section" id="history-section">
+        <summary>History</summary>
+        <div class="adv-body">
+          <div class="flex items-center justify-end mb-4 flex-wrap gap-2">
             <button type="button" id="export-history" class="btn btn-secondary">Export JSON</button>
             <button type="button" id="import-history" class="btn btn-secondary">Import JSON</button>
           </div>
+          <div id="history-table-container">
+            <!-- JS will populate this -->
+          </div>
+          <input type="file" id="import-file" accept=".json,application/json" class="hidden">
         </div>
-        <div id="history-table-container">
-          <!-- JS will populate this -->
+      </details>
+
+      <details class="adv-section" id="settings-section">
+        <summary>Settings</summary>
+        <div id="settings-container" class="adv-body">
+          <p class="text-sm text-gray-500">No settings yet.</p>
         </div>
-        <input type="file" id="import-file" accept=".json,application/json" class="hidden">
-      </div>
+      </details>
     </div>
   </div>
   

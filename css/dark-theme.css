@@ -61,8 +61,16 @@ body.dark-theme {
   color: #63B3ED;
 }
 
-.dark-theme #history-container {
+.dark-theme .adv-section {
   border-color: var(--border-color);
+}
+
+.dark-theme .adv-section summary {
+  color: var(--text-color);
+}
+
+.dark-theme .adv-section summary::after {
+  border-color: var(--text-gray-500);
 }
 
 .dark-theme .history-table th,
