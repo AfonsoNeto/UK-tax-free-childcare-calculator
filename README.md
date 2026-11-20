@@ -7,6 +7,7 @@ A simple web application to help UK parents estimate their monthly nursery costs
 ## Features
 
 - Calculate total monthly childcare costs based on daily rates and selected days.
+- Amounts are displayed with thousands separators (e.g. £1,092.35); they are stored as integer pence internally to avoid rounding drift.
 - **Monthly total input:** enter the full amount from your monthly nursery invoice instead of digging out the daily rate.
 - Factor in the 20% government top-up.
 - Show the breakdown of the user's share and the government's share.
