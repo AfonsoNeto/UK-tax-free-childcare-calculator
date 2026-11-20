@@ -2,6 +2,8 @@ import { UI } from './UI.js';
 import { CostCalculator } from './CostCalculator.js';
 import { ThemeSwitcher } from './ThemeSwitcher.js';
 import { HistoryStore } from './HistoryStore.js';
+import { Settings } from './Settings.js';
+import { MAX_GOV_CONTRIBUTION_PER_PERIOD } from './config.js';
 
 export class App {
   constructor() {
@@ -9,11 +11,13 @@ export class App {
     this.calculator = CostCalculator;
     this.themeSwitcher = new ThemeSwitcher();
     this.historyStore = new HistoryStore();
+    this.settings = new Settings();
   }
 
   init() {
     document.addEventListener('DOMContentLoaded', () => {
       this.ui.init();
+      this.ui.setPeriodAnchor(this.settings.getPeriodAnchorMonth());
       this.addEventListeners();
       this.renderHistory();
       this.prefillGovContribution();
@@ -28,6 +32,11 @@ export class App {
       this.calculate();
     });
     this.ui.govContributionInput.addEventListener('input', () => this.calculate());
+    this.ui.periodAnchorSelect.addEventListener('change', () => {
+      this.settings.setPeriodAnchorMonth(this.ui.getPeriodAnchor());
+      this.prefillGovContribution();
+      this.calculate();
+    });
     this.ui.monthlyTotalInput.addEventListener('input', () => this.calculate());
     this.ui.modeRadios.forEach(radio => {
       radio.addEventListener('change', () => {
@@ -78,7 +87,7 @@ export class App {
     }
 
     const results = this.calculator.calculate(inputs);
-    const optimization = this.calculator.calculateOptimization(inputs);
+    const optimization = this.calculator.calculateOptimization(inputs, this.ui.getPeriodAnchor());
 
     this.ui.showResults();
     this.ui.displayResults(results, optimization.extraForCurrentMonth);
@@ -90,8 +99,10 @@ export class App {
     if (!year || !month) {
       return;
     }
-    const contributionSoFar = this.historyStore.quarterGovContributionBefore(year, month);
+    const anchorMonth = this.ui.getPeriodAnchor();
+    const contributionSoFar = this.historyStore.periodGovContributionBefore(year, month, anchorMonth);
     this.ui.govContributionInput.value = (contributionSoFar / 100).toFixed(2);
+    this.ui.renderAllowance(MAX_GOV_CONTRIBUTION_PER_PERIOD - contributionSoFar);
   }
 
   monthKey(year, month) {

@@ -48,19 +48,23 @@ export class CostCalculator {
     };
   }
 
-  static calculateOptimization(inputs) {
+  static calculateOptimization(inputs, anchorMonth = 1) {
     const { year, month } = inputs;
-    const quarterInfo = DateUtil.getQuarterInfo(year, month);
+    const periodInfo = DateUtil.getPeriodInfo(year, month, anchorMonth);
 
-    let totalQuarterlyCost = 0;
-    quarterInfo.months.forEach(monthIndex => {
-      totalQuarterlyCost += this.resolveMonthlyTotal(inputs, year, monthIndex + 1);
+    let totalPeriodCost = 0;
+    periodInfo.months.forEach(m => {
+      totalPeriodCost += this.resolveMonthlyTotal(inputs, m.year, m.month);
     });
 
+    // The selected month sits at `offset` in the chronological month list,
+    // so everything from there on is projected with the current rates.
+    const offset = periodInfo.months.findIndex(m => m.year === year && m.month === month);
+
     let optimization = {
-      periodName: quarterInfo.periodName,
-      totalQuarterlyCost,
-      onTrack: totalQuarterlyCost >= REQUIRED_TOTAL_COST_FOR_MAX_BENEFIT,
+      periodName: periodInfo.periodName,
+      totalQuarterlyCost: totalPeriodCost,
+      onTrack: totalPeriodCost >= REQUIRED_TOTAL_COST_FOR_MAX_BENEFIT,
       shortfall: 0,
       userContributionShortfall: 0,
       extraGovTopUp: 0,
@@ -69,18 +73,17 @@ export class CostCalculator {
     };
 
     if (!optimization.onTrack) {
-      optimization.shortfall = REQUIRED_TOTAL_COST_FOR_MAX_BENEFIT - totalQuarterlyCost;
+      optimization.shortfall = REQUIRED_TOTAL_COST_FOR_MAX_BENEFIT - totalPeriodCost;
       optimization.extraGovTopUp = this.govTopUp(optimization.shortfall);
       optimization.userContributionShortfall = optimization.shortfall - optimization.extraGovTopUp;
 
-      const currentMonthIndex = month - 1;
-      const remainingMonthsInQuarter = quarterInfo.months.filter(m => m >= currentMonthIndex);
+      const remainingMonthsInPeriod = periodInfo.months.slice(offset);
 
-      if (remainingMonthsInQuarter.length > 0) {
-        const extraPerMonth = Math.round(optimization.userContributionShortfall / remainingMonthsInQuarter.length);
+      if (remainingMonthsInPeriod.length > 0) {
+        const extraPerMonth = Math.round(optimization.userContributionShortfall / remainingMonthsInPeriod.length);
         optimization.extraForCurrentMonth = extraPerMonth;
-        optimization.monthlyBreakdown = remainingMonthsInQuarter.map(mIndex =>
-          `<strong>${formatGBP(extraPerMonth)}</strong> in ${MONTH_NAMES[mIndex]}`
+        optimization.monthlyBreakdown = remainingMonthsInPeriod.map(m =>
+          `<strong>${formatGBP(extraPerMonth)}</strong> in ${MONTH_NAMES[m.month - 1]}`
         ).join(', ');
       }
     }

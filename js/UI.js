@@ -1,10 +1,13 @@
-import { DAYS_OF_WEEK, MONTH_NAMES } from './config.js';
+import { DAYS_OF_WEEK, MONTH_NAMES, MAX_GOV_CONTRIBUTION_PER_PERIOD } from './config.js';
 import { formatGBP } from './format.js';
 
 export class UI {
   constructor() {
     this.monthYearInput = document.getElementById('month-year');
     this.govContributionInput = document.getElementById('gov-contribution');
+    this.allowanceNote = document.getElementById('allowance-note');
+    this.periodAnchorSelect = document.getElementById('period-anchor');
+    this.settingsSection = document.getElementById('settings-section');
     this.daysGroup = document.getElementById('days-group');
     this.daysContainer = document.getElementById('days-container');
     this.monthlyTotalGroup = document.getElementById('monthly-total-group');
@@ -16,7 +19,6 @@ export class UI {
     this.exportHistoryButton = document.getElementById('export-history');
     this.importHistoryButton = document.getElementById('import-history');
     this.importFileInput = document.getElementById('import-file');
-    this.settingsSection = document.getElementById('settings-section');
     this.resultsContainer = document.getElementById('results-container');
     this.resultsBreakdown = document.getElementById('results-breakdown');
     this.optimizationContainer = document.getElementById('optimization-container');
@@ -33,6 +35,34 @@ export class UI {
       this.setMode(savedMode);
     }
     this.populateDays();
+    this.populatePeriodAnchor();
+  }
+
+  populatePeriodAnchor() {
+    MONTH_NAMES.forEach((name, index) => {
+      const option = document.createElement('option');
+      option.value = String(index + 1);
+      option.textContent = name;
+      this.periodAnchorSelect.appendChild(option);
+    });
+  }
+
+  setPeriodAnchor(month) {
+    this.periodAnchorSelect.value = String(month);
+  }
+
+  getPeriodAnchor() {
+    return Number(this.periodAnchorSelect.value) || 1;
+  }
+
+  renderAllowance(remainingPence) {
+    if (remainingPence >= MAX_GOV_CONTRIBUTION_PER_PERIOD) {
+      this.allowanceNote.textContent = `Full ${formatGBP(MAX_GOV_CONTRIBUTION_PER_PERIOD)} government top-up available in this period`;
+    } else if (remainingPence > 0) {
+      this.allowanceNote.textContent = `${formatGBP(remainingPence)} government top-up left in this period`;
+    } else {
+      this.allowanceNote.textContent = `Period allowance of ${formatGBP(MAX_GOV_CONTRIBUTION_PER_PERIOD)} already claimed`;
+    }
   }
 
   getMode() {
