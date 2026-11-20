@@ -1,23 +1,32 @@
 # UK Tax-Free Childcare Calculator
 
-![Application Screenshot](images/screenshot.png)
+![Application screenshot](images/screenshot.png)
 
 A simple web application to help UK parents estimate their monthly nursery costs and the government's contribution through the Tax-Free Childcare scheme.
 
 ## Features
 
 - Calculate total monthly childcare costs based on daily rates and selected days.
+- **Monthly total input:** enter the full amount from your monthly nursery invoice instead of digging out the daily rate.
 - Factor in the 20% government top-up.
 - Show the breakdown of the user's share and the government's share.
 - Provides an optimization hint to maximize the government benefit.
+- **Month history:** save each calculated month (total cost, government contribution, amount paid) to your browser and browse it in a table.
+  - Selecting a month prefills the government contribution paid so far in the current 3-month period from the saved months (you can still edit it).
+  - Reload a saved month back into the form, or delete it.
+  - **Export/Import JSON:** download the history as `tfc-history.json` for backup, or import it into another browser.
 - **Theme Switcher:** Toggle between light and dark modes for comfortable viewing.
+
+![Monthly total input](images/screenshot-monthly-mode.png)
+
+![Month history](images/screenshot-history.png)
 
 ## How to Use
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/UK-taxfree-childcare-calculator.git
-    cd UK-taxfree-childcare-calculator
+    git clone https://github.com/AfonsoNeto/UK-tax-free-childcare-calculator.git
+    cd UK-tax-free-childcare-calculator
     ```
 
 2.  **Run a local web server.**
@@ -26,31 +35,36 @@ A simple web application to help UK parents estimate their monthly nursery costs
     **Using Python:**
     If you have Python installed, you can use the built-in HTTP server.
     ```bash
-    # For Python 3
     python3 -m http.server
     ```
+
+    **Using npm:**
+    ```bash
+    npm start
+    ```
+
     Then open your browser and go to `http://localhost:8000`.
 
-    **Using npx (Node.js):**
-    If you have Node.js installed, you can use the `serve` package via `npx`.
-    ```bash
-    npx serve
-    ```
-    It will give you a local address to open in your browser (usually `http://localhost:3000`).
-
-    **Using Bun:**
-    If you have Bun installed, you can use its built-in HTTP server.
-    ```bash
-    bunx serve
-    ```
-    Then open your browser and go to `http://localhost:3000`.
-
 3.  **Use the calculator:**
+    -   Pick an input method: enter the **daily rate** for each nursery day, or just the **total monthly cost** from your invoice.
     -   Select the month and year you want to calculate for.
-    -   Enter your current government contribution for the 3-month period if you have any.
-    -   Select the days of the week your child attends the nursery.
-    -   Enter the daily rate for each selected day.
+    -   Enter your current government contribution for the 3-month period if you have any (it is prefilled from your saved months when available).
     -   The estimated costs will be displayed automatically.
+    -   Click **Save this month** to store the result in the history table below.
+
+4.  **Manage your history:**
+    -   Use **Load** on a saved month to bring its inputs back into the form.
+    -   Use **Export JSON** to download your history as a file, and **Import JSON** to restore it (e.g. in another browser).
+
+## Running the tests
+
+The calculation and storage logic is covered by tests that use Node.js's built-in test runner — no dependencies to install.
+
+```bash
+npm test
+```
+
+Requires Node.js 18 or newer.
 
 ## Technologies Used
 
@@ -58,3 +72,4 @@ A simple web application to help UK parents estimate their monthly nursery costs
 - CSS
 - JavaScript
 - Tailwind CSS
+- Node.js built-in test runner (`node:test`)
