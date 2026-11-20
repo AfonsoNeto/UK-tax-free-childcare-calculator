@@ -21,6 +21,13 @@ export class App {
   addEventListeners() {
     this.ui.monthYearInput.addEventListener('change', () => this.calculate());
     this.ui.govContributionInput.addEventListener('input', () => this.calculate());
+    this.ui.monthlyTotalInput.addEventListener('input', () => this.calculate());
+    this.ui.modeRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        this.ui.applyMode();
+        this.calculate();
+      });
+    });
     this.ui.daysContainer.addEventListener('change', (e) => {
       if (e.target.type === 'checkbox') {
         this.ui.toggleRateInput(e.target);

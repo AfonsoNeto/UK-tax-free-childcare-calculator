@@ -4,7 +4,11 @@ export class UI {
   constructor() {
     this.monthYearInput = document.getElementById('month-year');
     this.govContributionInput = document.getElementById('gov-contribution');
+    this.daysGroup = document.getElementById('days-group');
     this.daysContainer = document.getElementById('days-container');
+    this.monthlyTotalGroup = document.getElementById('monthly-total-group');
+    this.monthlyTotalInput = document.getElementById('monthly-total');
+    this.modeRadios = document.querySelectorAll('input[name="input-mode"]');
     this.resultsContainer = document.getElementById('results-container');
     this.resultsBreakdown = document.getElementById('results-breakdown');
     this.optimizationContainer = document.getElementById('optimization-container');
@@ -16,7 +20,31 @@ export class UI {
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     this.monthYearInput.value = `${year}-${month}`;
+    const savedMode = localStorage.getItem('tfc-input-mode');
+    if (savedMode === 'monthly' || savedMode === 'daily') {
+      this.setMode(savedMode);
+    }
     this.populateDays();
+  }
+
+  getMode() {
+    const checked = document.querySelector('input[name="input-mode"]:checked');
+    return checked ? checked.value : 'daily';
+  }
+
+  setMode(mode) {
+    const radio = document.querySelector(`input[name="input-mode"][value="${mode}"]`);
+    if (radio) {
+      radio.checked = true;
+    }
+    this.applyMode();
+  }
+
+  applyMode() {
+    const isMonthly = this.getMode() === 'monthly';
+    this.monthlyTotalGroup.classList.toggle('hidden', !isMonthly);
+    this.daysGroup.classList.toggle('hidden', isMonthly);
+    localStorage.setItem('tfc-input-mode', this.getMode());
   }
 
   populateDays() {
@@ -41,22 +69,29 @@ export class UI {
   getInputs() {
     const [year, month] = this.monthYearInput.value.split('-').map(Number);
     const govContributionSoFar = parseFloat(this.govContributionInput.value) || 0;
-    
-    const currentDayRates = {};
-    let hasInputs = false;
-    DAYS_OF_WEEK.forEach(day => {
-      const dayCheckbox = document.getElementById(`${day.toLowerCase()}-check`);
-      if (dayCheckbox.checked) {
-        const dayRateInput = document.getElementById(`${day.toLowerCase()}-rate`);
-        const dailyRate = parseFloat(dayRateInput.value) || 0;
-        if (dailyRate > 0) {
-          currentDayRates[day] = dailyRate;
-          hasInputs = true;
-        }
-      }
-    });
 
-    return { year, month, govContributionSoFar, currentDayRates, hasInputs };
+    const currentDayRates = {};
+    let totalMonthlyCost = 0;
+    let hasInputs = false;
+
+    if (this.getMode() === 'monthly') {
+      totalMonthlyCost = parseFloat(this.monthlyTotalInput.value) || 0;
+      hasInputs = totalMonthlyCost > 0;
+    } else {
+      DAYS_OF_WEEK.forEach(day => {
+        const dayCheckbox = document.getElementById(`${day.toLowerCase()}-check`);
+        if (dayCheckbox.checked) {
+          const dayRateInput = document.getElementById(`${day.toLowerCase()}-rate`);
+          const dailyRate = parseFloat(dayRateInput.value) || 0;
+          if (dailyRate > 0) {
+            currentDayRates[day] = dailyRate;
+            hasInputs = true;
+          }
+        }
+      });
+    }
+
+    return { year, month, govContributionSoFar, currentDayRates, totalMonthlyCost, hasInputs };
   }
 
   toggleRateInput(checkbox) {

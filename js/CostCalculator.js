@@ -16,10 +16,18 @@ export class CostCalculator {
     return cost;
   }
 
-  static calculate(inputs) {
-    const { year, month, govContributionSoFar, currentDayRates } = inputs;
+  // Monthly-total mode supplies the cost directly; otherwise derive it from the daily rates.
+  static resolveMonthlyTotal(inputs, year, month) {
+    if (inputs.totalMonthlyCost && inputs.totalMonthlyCost > 0) {
+      return inputs.totalMonthlyCost;
+    }
+    return this.calculateMonthlyCost(year, month, inputs.currentDayRates);
+  }
 
-    const totalMonthlyCost = this.calculateMonthlyCost(year, month, currentDayRates);
+  static calculate(inputs) {
+    const { year, month, govContributionSoFar } = inputs;
+
+    const totalMonthlyCost = this.resolveMonthlyTotal(inputs, year, month);
 
     const potentialGovContribution = totalMonthlyCost * GOV_TOP_UP_PERCENTAGE;
     const remainingGovAllowance = Math.max(0, MAX_GOV_CONTRIBUTION_PER_PERIOD - govContributionSoFar);
@@ -34,12 +42,12 @@ export class CostCalculator {
   }
 
   static calculateOptimization(inputs) {
-    const { year, month, currentDayRates } = inputs;
+    const { year, month } = inputs;
     const quarterInfo = DateUtil.getQuarterInfo(year, month);
-    
+
     let totalQuarterlyCost = 0;
     quarterInfo.months.forEach(monthIndex => {
-      totalQuarterlyCost += this.calculateMonthlyCost(year, monthIndex + 1, currentDayRates);
+      totalQuarterlyCost += this.resolveMonthlyTotal(inputs, year, monthIndex + 1);
     });
 
     let optimization = {
