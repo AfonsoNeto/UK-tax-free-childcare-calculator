@@ -1,0 +1,10 @@
+{
+  "name": "uk-tax-free-childcare-calculator",
+  "version": "1.0.0",
+  "description": "A simple HTML + vanilla JavaScript calculator for checking payable and government contribution into childcare",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server",
+    "test": "node --test"
+  }
+}
