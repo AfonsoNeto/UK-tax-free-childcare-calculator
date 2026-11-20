@@ -1,0 +1,75 @@
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.btn-small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.btn-primary {
+  background-color: #4299E1;
+  color: #FFFFFF;
+}
+
+.btn-primary:hover {
+  background-color: #3182CE;
+}
+
+.btn-secondary {
+  background-color: #FFFFFF;
+  border-color: #4299E1;
+  color: #2B6CB0;
+}
+
+.btn-secondary:hover {
+  background-color: #EBF8FF;
+}
+
+.btn-danger {
+  background-color: #FFFFFF;
+  border-color: #FEB2B2;
+  color: #C53030;
+}
+
+.btn-danger:hover {
+  background-color: #FFF5F5;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.history-table th,
+.history-table td {
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.history-table th {
+  font-weight: 600;
+  color: #4A5568;
+}
+
+.history-table td.num,
+.history-table th.num {
+  text-align: right;
+}
+
+.history-table td.actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.history-table td.actions .btn {
+  margin-left: 0.4rem;
+}

@@ -1,4 +1,4 @@
-import { DAYS_OF_WEEK } from './config.js';
+import { DAYS_OF_WEEK, MONTH_NAMES } from './config.js';
 
 export class UI {
   constructor() {
@@ -9,6 +9,12 @@ export class UI {
     this.monthlyTotalGroup = document.getElementById('monthly-total-group');
     this.monthlyTotalInput = document.getElementById('monthly-total');
     this.modeRadios = document.querySelectorAll('input[name="input-mode"]');
+    this.saveMonthButton = document.getElementById('save-month');
+    this.historyContainer = document.getElementById('history-container');
+    this.historyTableContainer = document.getElementById('history-table-container');
+    this.exportHistoryButton = document.getElementById('export-history');
+    this.importHistoryButton = document.getElementById('import-history');
+    this.importFileInput = document.getElementById('import-file');
     this.resultsContainer = document.getElementById('results-container');
     this.resultsBreakdown = document.getElementById('results-breakdown');
     this.optimizationContainer = document.getElementById('optimization-container');
@@ -94,18 +100,74 @@ export class UI {
     return { year, month, govContributionSoFar, currentDayRates, totalMonthlyCost, hasInputs };
   }
 
-  toggleRateInput(checkbox) {
+  toggleRateInput(checkbox, focus = true) {
     const rateInputDiv = checkbox.closest('div').nextElementSibling;
     const rateInput = rateInputDiv.querySelector('input');
     if (checkbox.checked) {
       rateInputDiv.classList.remove('hidden');
       rateInput.disabled = false;
-      rateInput.focus();
+      if (focus) {
+        rateInput.focus();
+      }
     } else {
       rateInputDiv.classList.add('hidden');
       rateInput.disabled = true;
       rateInput.value = '';
     }
+  }
+
+  setMonth(monthKey) {
+    this.monthYearInput.value = monthKey;
+  }
+
+  // Restore the day checkboxes and rate inputs from a saved dayRates object.
+  setDayRates(dayRates) {
+    DAYS_OF_WEEK.forEach(day => {
+      const checkbox = document.getElementById(`${day.toLowerCase()}-check`);
+      const rateInput = document.getElementById(`${day.toLowerCase()}-rate`);
+      const hasRate = Boolean(dayRates[day]);
+      if (checkbox.checked !== hasRate) {
+        checkbox.checked = hasRate;
+        this.toggleRateInput(checkbox, false);
+      }
+      rateInput.value = hasRate ? dayRates[day] : '';
+    });
+  }
+
+  renderHistory(history) {
+    const entries = Object.entries(history).sort((a, b) => b[0].localeCompare(a[0]));
+    if (entries.length === 0) {
+      this.historyTableContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">No saved months yet. Calculate a month and click &quot;Save this month&quot;.</p>';
+      return;
+    }
+    const rows = entries.map(([key, entry]) => {
+      const [year, month] = key.split('-').map(Number);
+      const label = `${MONTH_NAMES[month - 1]} ${year}`;
+      return `
+        <tr data-month="${key}">
+          <td>${label}</td>
+          <td class="num">£${entry.totalMonthlyCost.toFixed(2)}</td>
+          <td class="num">£${entry.govContribution.toFixed(2)}</td>
+          <td class="num">£${entry.userPays.toFixed(2)}</td>
+          <td class="actions">
+            <button type="button" class="btn btn-small btn-secondary" data-action="load" data-month="${key}">Load</button>
+            <button type="button" class="btn btn-small btn-danger" data-action="delete" data-month="${key}">Delete</button>
+          </td>
+        </tr>`;
+    }).join('');
+    this.historyTableContainer.innerHTML = `
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th class="num">Total Cost</th>
+            <th class="num">Gov Contribution</th>
+            <th class="num">You Pay</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
   }
 
   displayResults(results, extraForCurrentMonth) {

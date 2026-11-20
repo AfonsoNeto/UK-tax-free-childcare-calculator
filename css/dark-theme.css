@@ -61,6 +61,48 @@ body.dark-theme {
   color: #63B3ED;
 }
 
+.dark-theme #history-container {
+  border-color: var(--border-color);
+}
+
+.dark-theme .history-table th,
+.dark-theme .history-table td {
+  border-color: var(--border-color);
+}
+
+.dark-theme .history-table th {
+  color: var(--text-gray-500);
+}
+
+.dark-theme .btn-primary {
+  background-color: #4299E1;
+  color: #FFFFFF;
+}
+
+.dark-theme .btn-primary:hover {
+  background-color: #63B3ED;
+}
+
+.dark-theme .btn-secondary {
+  background-color: transparent;
+  border-color: #63B3ED;
+  color: #63B3ED;
+}
+
+.dark-theme .btn-secondary:hover {
+  background-color: rgba(66, 153, 225, 0.15);
+}
+
+.dark-theme .btn-danger {
+  background-color: transparent;
+  border-color: #FC8181;
+  color: #FC8181;
+}
+
+.dark-theme .btn-danger:hover {
+  background-color: rgba(252, 129, 129, 0.15);
+}
+
 .dark-theme .result-item .result-label,
 .dark-theme .result-item .result-value {
   color: var(--text-color);
