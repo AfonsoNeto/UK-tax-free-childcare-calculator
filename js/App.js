@@ -87,7 +87,7 @@ export class App {
     }
 
     const results = this.calculator.calculate(inputs);
-    const optimization = this.calculator.calculateOptimization(inputs, this.ui.getPeriodAnchor());
+    const optimization = this.calculator.calculateOptimization(inputs, this.ui.getPeriodAnchor(), this.historyStore.load());
 
     this.ui.showResults();
     this.ui.displayResults(results, optimization.extraForCurrentMonth);

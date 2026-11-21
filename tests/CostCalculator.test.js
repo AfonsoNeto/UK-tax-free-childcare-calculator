@@ -2,6 +2,11 @@ import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { CostCalculator } from '../js/CostCalculator.js';
 
+// History entry stand-in for projection tests; all values are integer pence.
+function entry(overrides = {}) {
+  return { totalMonthlyCost: 90000, govContribution: 18000, userPays: 72000, dayRates: null, savedAt: '2026-01-01T00:00:00.000Z', ...overrides };
+}
+
 // All money values are integer pence.
 test('calculateMonthlyCost sums the rates of the selected nursery days', () => {
   // November 2026: 5 Mondays and 4 Tuesdays
@@ -130,4 +135,42 @@ test('calculateOptimization honours the configured period anchor', () => {
   assert.equal(optimization.extraForCurrentMonth, 4000);
   assert.match(optimization.monthlyBreakdown, /in December/);
   assert.match(optimization.monthlyBreakdown, /in January/);
+});
+
+test('calculateOptimization uses saved months for the past months of the period', () => {
+  const history = { '2026-10': entry(), '2026-11': entry({ totalMonthlyCost: 95000 }) };
+  // November selected: October is past (uses saved £900), November is the
+  // selected month (uses the live £800 even though it was saved as £950),
+  // December is projected (£800).
+  const optimization = CostCalculator.calculateOptimization({
+    year: 2026,
+    month: 11,
+    currentDayRates: {},
+    totalMonthlyCost: 80000
+  }, 1, history);
+  assert.equal(optimization.totalQuarterlyCost, 90000 + 80000 + 80000);
+});
+
+test('calculateOptimization projects past months that have no history entry', () => {
+  const optimization = CostCalculator.calculateOptimization({
+    year: 2026,
+    month: 11,
+    currentDayRates: {},
+    totalMonthlyCost: 80000
+  }, 1, {});
+  assert.equal(optimization.totalQuarterlyCost, 240000);
+});
+
+test('calculateOptimization ignores saved months outside the period or in the future', () => {
+  const history = {
+    '2026-11': entry({ totalMonthlyCost: 95000 }), // future relative to October
+    '2026-09': entry({ totalMonthlyCost: 70000 })  // outside the Oct-Dec period
+  };
+  const optimization = CostCalculator.calculateOptimization({
+    year: 2026,
+    month: 10,
+    currentDayRates: {},
+    totalMonthlyCost: 80000
+  }, 1, history);
+  assert.equal(optimization.totalQuarterlyCost, 240000);
 });
