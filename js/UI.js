@@ -17,6 +17,11 @@ export class UI {
     this.useLastRatesButton = document.getElementById('use-last-rates');
     this.useLastTotalButton = document.getElementById('use-last-total');
     this.modeRadios = document.querySelectorAll('input[name="input-mode"]');
+    this.childSelectGroup = document.getElementById('child-select-group');
+    this.childSelect = document.getElementById('child-select');
+    this.childrenList = document.getElementById('children-list');
+    this.newChildNameInput = document.getElementById('new-child-name');
+    this.addChildButton = document.getElementById('add-child');
     this.saveMonthButton = document.getElementById('save-month');
     this.historySection = document.getElementById('history-section');
     this.historyChartContainer = document.getElementById('history-chart-container');
@@ -35,10 +40,6 @@ export class UI {
     const year = now.getFullYear();
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     this.monthYearInput.value = `${year}-${month}`;
-    const savedMode = localStorage.getItem('tfc-input-mode');
-    if (savedMode === 'monthly' || savedMode === 'daily') {
-      this.setMode(savedMode);
-    }
     this.populateDays();
     this.populatePeriodAnchor();
   }
@@ -87,7 +88,26 @@ export class UI {
     const isMonthly = this.getMode() === 'monthly';
     this.monthlyTotalGroup.classList.toggle('hidden', !isMonthly);
     this.daysGroup.classList.toggle('hidden', isMonthly);
-    localStorage.setItem('tfc-input-mode', this.getMode());
+  }
+
+  static escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  renderChildSelect(children, activeId) {
+    this.childSelect.innerHTML = children.map(child =>
+      `<option value="${UI.escapeHtml(child.id)}">${UI.escapeHtml(child.name)}</option>`
+    ).join('');
+    this.childSelect.value = activeId;
+    this.childSelectGroup.classList.toggle('hidden', children.length <= 1);
+  }
+
+  renderChildrenSettings(children) {
+    this.childrenList.innerHTML = children.map(child => `
+      <div class="flex items-center gap-2 mb-2">
+        <input type="text" class="input child-name-input" data-id="${UI.escapeHtml(child.id)}" value="${UI.escapeHtml(child.name)}">
+        <button type="button" class="btn btn-small btn-danger" data-action="remove-child" data-id="${UI.escapeHtml(child.id)}" ${children.length <= 1 ? 'disabled' : ''}>Delete</button>
+      </div>`).join('');
   }
 
   populateDays() {
@@ -179,6 +199,21 @@ export class UI {
 
   setMonthlyTotal(totalPence) {
     this.monthlyTotalInput.value = totalPence / 100;
+  }
+
+  // Clear the cost inputs when switching children: rates, invoice total
+  // and the selected month belong to whoever was being calculated.
+  resetCostInputs() {
+    DAYS_OF_WEEK.forEach(day => {
+      const checkbox = document.getElementById(`${day.toLowerCase()}-check`);
+      if (checkbox.checked) {
+        checkbox.checked = false;
+        this.toggleRateInput(checkbox, false);
+      }
+    });
+    this.monthlyTotalInput.value = '';
+    const now = new Date();
+    this.monthYearInput.value = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
   }
 
   renderHistory(history, editingMonth = null) {

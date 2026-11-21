@@ -25,6 +25,14 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
         <!-- Left Column: Inputs -->
         <div>
+          <!-- Child Selection (visible when more than one child is tracked) -->
+          <div class="input-group hidden" id="child-select-group">
+            <label for="child-select" class="label">Child</label>
+            <select id="child-select" class="input">
+              <!-- JS will populate this -->
+            </select>
+          </div>
+
           <!-- Input Mode Selection -->
           <div class="input-group">
             <label class="label">Input Method</label>
@@ -139,6 +147,14 @@
       <details class="adv-section" id="settings-section">
         <summary>Settings</summary>
         <div id="settings-container" class="adv-body">
+          <div class="input-group">
+            <label class="label">Children</label>
+            <div id="children-list"></div>
+            <div class="flex gap-2 mt-2">
+              <input type="text" id="new-child-name" class="input" placeholder="New child's name">
+              <button type="button" id="add-child" class="btn btn-secondary">Add child</button>
+            </div>
+          </div>
           <div class="input-group">
             <label for="period-anchor" class="label">3-month period starts in</label>
             <select id="period-anchor" class="input">
