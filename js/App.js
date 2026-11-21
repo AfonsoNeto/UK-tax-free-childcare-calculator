@@ -3,6 +3,7 @@ import { CostCalculator } from './CostCalculator.js';
 import { ThemeSwitcher } from './ThemeSwitcher.js';
 import { HistoryStore, findLatestRates, findLatestMonthlyTotal } from './HistoryStore.js';
 import { Settings } from './Settings.js';
+import { ChildStore } from './ChildStore.js';
 import { MAX_GOV_CONTRIBUTION_PER_PERIOD } from './config.js';
 import { formatGBP } from './format.js';
 
@@ -11,22 +12,51 @@ export class App {
     this.ui = new UI();
     this.calculator = CostCalculator;
     this.themeSwitcher = new ThemeSwitcher();
-    this.historyStore = new HistoryStore();
-    this.settings = new Settings();
+    this.childStore = new ChildStore();
     this.editingMonth = null;
+    // Stores for the active child are (re)created by refreshStores().
+    this.refreshStores();
+  }
+
+  // Each child has their own storage keys, so the stores simply point at
+  // the active child's keys.
+  refreshStores() {
+    const child = this.childStore.getActiveChild();
+    this.historyStore = this.historyStoreFor(child.id);
+    this.settings = this.settingsFor(child.id);
+  }
+
+  settingsFor(childId) {
+    const storage = this.childStore.storage;
+    return new Settings(storage, `tfc-period-anchor:${childId}`, `tfc-leftover:${childId}`, `tfc-input-mode:${childId}`);
+  }
+
+  historyStoreFor(childId) {
+    return new HistoryStore(this.childStore.storage, this.childStore.exportChildKey(childId));
   }
 
   init() {
     document.addEventListener('DOMContentLoaded', () => {
       this.ui.init();
-      this.ui.setPeriodAnchor(this.settings.getPeriodAnchorMonth());
-      this.ui.leftoverBalanceInput.value = (this.settings.getLeftoverBalance() / 100).toFixed(2);
+      this.restoreActiveChildState();
       this.addEventListeners();
       this.renderHistory();
       this.prefillGovContribution();
       this.calculate();
       this.themeSwitcher.init();
     });
+  }
+
+  // Restore the form state of the active child: period anchor, leftover
+  // balance, input mode and the child selectors.
+  restoreActiveChildState() {
+    const child = this.childStore.getActiveChild();
+    const { children } = this.childStore.load();
+    this.ui.setPeriodAnchor(this.settings.getPeriodAnchorMonth());
+    this.ui.leftoverBalanceInput.value = (this.settings.getLeftoverBalance() / 100).toFixed(2);
+    this.ui.setMode(this.settings.getInputMode());
+    this.ui.renderChildSelect(children, child.id);
+    this.ui.renderChildrenSettings(children);
   }
 
   addEventListeners() {
@@ -39,17 +69,30 @@ export class App {
       this.settings.setLeftoverBalance(UI.poundsToPence(this.ui.leftoverBalanceInput.value));
       this.calculate();
     });
+    this.ui.modeRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        this.settings.setInputMode(this.ui.getMode());
+        this.ui.applyMode();
+        this.calculate();
+      });
+    });
     this.ui.periodAnchorSelect.addEventListener('change', () => {
       this.settings.setPeriodAnchorMonth(this.ui.getPeriodAnchor());
       this.prefillGovContribution();
       this.calculate();
     });
-    this.ui.monthlyTotalInput.addEventListener('input', () => this.calculate());
-    this.ui.modeRadios.forEach(radio => {
-      radio.addEventListener('change', () => {
-        this.ui.applyMode();
-        this.calculate();
-      });
+    this.ui.childSelect.addEventListener('change', () => this.switchChild(this.ui.childSelect.value));
+    this.ui.addChildButton.addEventListener('click', () => this.addChild());
+    this.ui.childrenList.addEventListener('change', (e) => {
+      if (e.target.classList.contains('child-name-input')) {
+        this.renameChild(e.target.dataset.id, e.target.value);
+      }
+    });
+    this.ui.childrenList.addEventListener('click', (e) => {
+      const button = e.target.closest('button[data-action="remove-child"]');
+      if (button) {
+        this.removeChild(button.dataset.id);
+      }
     });
     this.ui.daysContainer.addEventListener('change', (e) => {
       if (e.target.type === 'checkbox') {
@@ -169,34 +212,6 @@ export class App {
     this.calculate();
   }
 
-  // Prefill the form from the most relevant saved month so the daily
-  // rate (or invoice total) never needs digging out.
-  applyLastSavedRates() {
-    const [year, month] = this.ui.monthYearInput.value.split('-').map(Number);
-    if (!year || !month) {
-      return;
-    }
-    const found = findLatestRates(this.historyStore.load(), this.monthKey(year, month));
-    if (!found) {
-      return;
-    }
-    this.ui.setDayRates(found.entry.dayRates);
-    this.calculate();
-  }
-
-  applyLastSavedTotal() {
-    const [year, month] = this.ui.monthYearInput.value.split('-').map(Number);
-    if (!year || !month) {
-      return;
-    }
-    const found = findLatestMonthlyTotal(this.historyStore.load(), this.monthKey(year, month));
-    if (!found) {
-      return;
-    }
-    this.ui.setMonthlyTotal(found.entry.totalMonthlyCost);
-    this.calculate();
-  }
-
   deleteMonth(monthKey) {
     if (!confirm(`Delete the saved entry for ${monthKey}?`)) {
       return;
@@ -205,10 +220,6 @@ export class App {
     this.renderHistory();
     this.prefillGovContribution();
     this.calculate();
-  }
-
-  renderHistory() {
-    this.ui.renderHistory(this.historyStore.load(), this.editingMonth);
   }
 
   editMonth(monthKey) {
@@ -243,8 +254,28 @@ export class App {
     }
   }
 
+  renderHistory() {
+    this.ui.renderHistory(this.historyStore.load(), this.editingMonth);
+  }
+
   exportHistory() {
-    const blob = new Blob([this.historyStore.exportJSON()], { type: 'application/json' });
+    const { children, activeChildId } = this.childStore.load();
+    const payload = {
+      version: 3,
+      activeChildId,
+      children: children.map(child => {
+        const settings = this.settingsFor(child.id);
+        return {
+          id: child.id,
+          name: child.name,
+          periodAnchorMonth: settings.getPeriodAnchorMonth(),
+          leftoverBalance: settings.getLeftoverBalance(),
+          inputMode: settings.getInputMode(),
+          history: JSON.parse(this.historyStoreFor(child.id).exportJSON())
+        };
+      })
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -256,7 +287,15 @@ export class App {
   importHistory(file) {
     file.text().then(text => {
       try {
-        this.historyStore.importJSON(text);
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === 'object' && parsed.version === 3 && Array.isArray(parsed.children)) {
+          this.importAllChildren(parsed);
+        } else {
+          // v1/v2 single-child exports go into the active child's history
+          this.historyStore.importJSON(text);
+        }
+        this.refreshStores();
+        this.restoreActiveChildState();
         this.renderHistory();
         this.prefillGovContribution();
         this.calculate();
@@ -264,5 +303,114 @@ export class App {
         alert(`Could not import history: ${err.message}`);
       }
     });
+  }
+
+  importAllChildren(payload) {
+    for (const childData of payload.children) {
+      if (!childData || typeof childData !== 'object') {
+        continue;
+      }
+      const { child, created } = this.childStore.ensureChild(childData);
+      if (childData.history && typeof childData.history === 'object') {
+        try {
+          this.historyStoreFor(child.id).importJSON(JSON.stringify(childData.history));
+        } catch {
+          // Skip malformed histories without aborting the whole import
+        }
+      }
+      // Preferences are only adopted for children introduced by this import
+      if (created) {
+        const settings = this.settingsFor(child.id);
+        const anchor = Number(childData.periodAnchorMonth);
+        if (Number.isInteger(anchor) && anchor >= 1 && anchor <= 12) {
+          settings.setPeriodAnchorMonth(anchor);
+        }
+        const leftover = Number(childData.leftoverBalance);
+        if (Number.isInteger(leftover) && leftover >= 0) {
+          settings.setLeftoverBalance(leftover);
+        }
+        if (childData.inputMode === 'monthly' || childData.inputMode === 'daily') {
+          settings.setInputMode(childData.inputMode);
+        }
+      }
+    }
+  }
+
+  switchChild(childId) {
+    this.editingMonth = null;
+    this.childStore.setActiveChild(childId);
+    this.refreshStores();
+    this.ui.resetCostInputs();
+    this.restoreActiveChildState();
+    this.renderHistory();
+    this.prefillGovContribution();
+    this.calculate();
+  }
+
+  addChild() {
+    this.childStore.addChild(this.ui.newChildNameInput.value);
+    this.ui.newChildNameInput.value = '';
+    this.refreshStores();
+    this.ui.resetCostInputs();
+    this.restoreActiveChildState();
+    this.renderHistory();
+    this.prefillGovContribution();
+    this.calculate();
+  }
+
+  renameChild(childId, name) {
+    try {
+      this.childStore.renameChild(childId, name);
+    } catch {
+      return; // empty name: keep the previous one
+    }
+    this.restoreActiveChildState();
+  }
+
+  removeChild(childId) {
+    const { children } = this.childStore.load();
+    if (children.length <= 1) {
+      return;
+    }
+    const child = children.find(c => c.id === childId);
+    if (!child || !confirm(`Delete ${child.name} and all of their saved history?`)) {
+      return;
+    }
+    this.childStore.removeChild(childId);
+    this.editingMonth = null;
+    this.refreshStores();
+    this.ui.resetCostInputs();
+    this.restoreActiveChildState();
+    this.renderHistory();
+    this.prefillGovContribution();
+    this.calculate();
+  }
+
+  // Prefill the form from the most relevant saved month so the daily
+  // rate (or invoice total) never needs digging out.
+  applyLastSavedRates() {
+    const [year, month] = this.ui.monthYearInput.value.split('-').map(Number);
+    if (!year || !month) {
+      return;
+    }
+    const found = findLatestRates(this.historyStore.load(), this.monthKey(year, month));
+    if (!found) {
+      return;
+    }
+    this.ui.setDayRates(found.entry.dayRates);
+    this.calculate();
+  }
+
+  applyLastSavedTotal() {
+    const [year, month] = this.ui.monthYearInput.value.split('-').map(Number);
+    if (!year || !month) {
+      return;
+    }
+    const found = findLatestMonthlyTotal(this.historyStore.load(), this.monthKey(year, month));
+    if (!found) {
+      return;
+    }
+    this.ui.setMonthlyTotal(found.entry.totalMonthlyCost);
+    this.calculate();
   }
 }

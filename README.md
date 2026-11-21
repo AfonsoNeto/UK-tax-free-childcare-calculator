@@ -20,6 +20,7 @@ A simple web application to help UK parents estimate their monthly nursery costs
   - Selecting a month prefills the government contribution paid so far in the current 3-month period from the saved months (you can still edit it).
   - Reload a saved month back into the form, or delete it.
   - **Export/Import JSON:** download the history as `tfc-history.json` for backup, or import it into another browser.
+- **Multiple children:** each child gets their own rates, history, period anchor, leftover balance and input mode, with a switcher at the top of the calculator (appears once a second child is added in Settings) and full data cleanup on removal. JSON exports and imports cover all children.
 - **Theme Switcher:** Toggle between light and dark modes for comfortable viewing.
 
 ![Monthly total input](images/screenshot-monthly-mode.png)

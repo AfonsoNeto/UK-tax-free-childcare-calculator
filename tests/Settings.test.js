@@ -73,3 +73,29 @@ test('setLeftoverBalance rejects invalid values', () => {
   assert.throws(() => settings.setLeftoverBalance(10.5));
   assert.throws(() => settings.setLeftoverBalance('oops'));
 });
+
+test('key params let each child have independent preferences', () => {
+  const storage = memoryStorage();
+  const first = new Settings(storage, 'tfc-period-anchor:child-1', 'tfc-leftover:child-1', 'tfc-input-mode:child-1');
+  const second = new Settings(storage, 'tfc-period-anchor:child-2', 'tfc-leftover:child-2', 'tfc-input-mode:child-2');
+
+  first.setPeriodAnchorMonth(11);
+  first.setLeftoverBalance(50000);
+  first.setInputMode('monthly');
+
+  assert.equal(second.getPeriodAnchorMonth(), 1);
+  assert.equal(second.getLeftoverBalance(), 0);
+  assert.equal(second.getInputMode(), 'daily');
+
+  second.setInputMode('daily');
+  assert.equal(first.getInputMode(), 'monthly');
+});
+
+test('input mode persists and validates', () => {
+  const storage = memoryStorage();
+  const settings = new Settings(storage);
+  assert.equal(settings.getInputMode(), 'daily');
+  settings.setInputMode('monthly');
+  assert.equal(settings.getInputMode(), 'monthly');
+  assert.throws(() => settings.setInputMode('weekly'));
+});

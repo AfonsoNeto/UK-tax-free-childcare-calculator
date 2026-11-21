@@ -1,6 +1,6 @@
 import { DateUtil } from './DateUtil.js';
 
-const STORAGE_KEY = 'tfc-history';
+const DEFAULT_STORAGE_KEY = 'tfc-history';
 const STORAGE_VERSION = 2;
 const MONTH_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -118,16 +118,18 @@ function toMonthEntries(parsed) {
   return normalizeMonthEntries(parsed, true);
 }
 
-// Keeps one entry per calculated month, persisted to a JSON blob in localStorage.
-// The storage backend is injectable so tests can run without a DOM.
+// Keeps one entry per calculated month, persisted to a JSON blob in a
+// storage key (per child when several children are tracked). The storage
+// backend is injectable so tests can run without a DOM.
 export class HistoryStore {
-  constructor(storage = defaultStorage()) {
+  constructor(storage = defaultStorage(), storageKey = DEFAULT_STORAGE_KEY) {
     this.storage = storage;
+    this.storageKey = storageKey;
   }
 
   load() {
     try {
-      const raw = this.storage.getItem(STORAGE_KEY);
+      const raw = this.storage.getItem(this.storageKey);
       if (!raw) {
         return {};
       }
@@ -223,6 +225,6 @@ export class HistoryStore {
   }
 
   persist(history) {
-    this.storage.setItem(STORAGE_KEY, JSON.stringify({ version: STORAGE_VERSION, months: history }));
+    this.storage.setItem(this.storageKey, JSON.stringify({ version: STORAGE_VERSION, months: history }));
   }
 }
