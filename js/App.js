@@ -91,7 +91,7 @@ export class App {
       return;
     }
     const contributionSoFar = this.historyStore.quarterGovContributionBefore(year, month);
-    this.ui.govContributionInput.value = contributionSoFar.toFixed(2);
+    this.ui.govContributionInput.value = (contributionSoFar / 100).toFixed(2);
   }
 
   monthKey(year, month) {

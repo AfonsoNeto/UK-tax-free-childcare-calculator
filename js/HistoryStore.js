@@ -1,6 +1,7 @@
 import { DateUtil } from './DateUtil.js';
 
 const STORAGE_KEY = 'tfc-history';
+const STORAGE_VERSION = 2;
 const MONTH_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 function defaultStorage() {
@@ -10,9 +11,9 @@ function defaultStorage() {
 function isValidEntry(entry) {
   return Boolean(entry)
     && typeof entry === 'object'
-    && Number.isFinite(Number(entry.totalMonthlyCost)) && Number(entry.totalMonthlyCost) >= 0
-    && Number.isFinite(Number(entry.govContribution)) && Number(entry.govContribution) >= 0
-    && Number.isFinite(Number(entry.userPays)) && Number(entry.userPays) >= 0;
+    && Number.isInteger(Number(entry.totalMonthlyCost)) && Number(entry.totalMonthlyCost) >= 0
+    && Number.isInteger(Number(entry.govContribution)) && Number(entry.govContribution) >= 0
+    && Number.isInteger(Number(entry.userPays)) && Number(entry.userPays) >= 0;
 }
 
 function normalizeEntry(entry) {
@@ -23,6 +24,54 @@ function normalizeEntry(entry) {
     dayRates: entry.dayRates && typeof entry.dayRates === 'object' ? entry.dayRates : null,
     savedAt: typeof entry.savedAt === 'string' ? entry.savedAt : ''
   };
+}
+
+// v1 stored pounds as decimals; v2 stores integer pence. Entry-level
+// validation happens after migration, when the values are final.
+function normalizeMonthEntries(parsed, fromV1) {
+  const history = {};
+  const scale = fromV1 ? 100 : 1;
+  for (const [key, entry] of Object.entries(parsed)) {
+    if (!MONTH_KEY_PATTERN.test(key) || !entry || typeof entry !== 'object') {
+      continue;
+    }
+    const candidate = normalizeEntry({
+      totalMonthlyCost: Number(entry.totalMonthlyCost) * scale,
+      govContribution: Number(entry.govContribution) * scale,
+      userPays: Number(entry.userPays) * scale,
+      dayRates: entry.dayRates,
+      savedAt: entry.savedAt
+    });
+    if (fromV1 && candidate.dayRates) {
+      candidate.dayRates = Object.fromEntries(
+        Object.entries(candidate.dayRates).map(([day, rate]) => [day, Math.round(Number(rate) * 100)])
+      );
+    }
+    if (isValidEntry(candidate)) {
+      history[key] = candidate;
+    }
+  }
+  return history;
+}
+
+function isValidHistoryObject(parsed) {
+  return Boolean(parsed) && typeof parsed === 'object' && !Array.isArray(parsed);
+}
+
+// Returns the months object of a parsed payload in the v2 (pence) shape,
+// or null if the payload is not usable history data.
+function toMonthEntries(parsed) {
+  if (!isValidHistoryObject(parsed)) {
+    return null;
+  }
+  if (parsed.version === STORAGE_VERSION) {
+    return isValidHistoryObject(parsed.months) ? normalizeMonthEntries(parsed.months, false) : {};
+  }
+  if (parsed.version !== undefined) {
+    return null; // unknown future version
+  }
+  // v1: bare object of month entries in pounds
+  return normalizeMonthEntries(parsed, true);
 }
 
 // Keeps one entry per calculated month, persisted to a JSON blob in localStorage.
@@ -38,17 +87,8 @@ export class HistoryStore {
       if (!raw) {
         return {};
       }
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        return {};
-      }
-      const history = {};
-      for (const [key, entry] of Object.entries(parsed)) {
-        if (MONTH_KEY_PATTERN.test(key) && isValidEntry(entry)) {
-          history[key] = normalizeEntry(entry);
-        }
-      }
-      return history;
+      const months = toMonthEntries(JSON.parse(raw));
+      return months || {};
     } catch {
       return {};
     }
@@ -87,7 +127,9 @@ export class HistoryStore {
   }
 
   // Merge a JSON export into the stored history; the newest savedAt wins.
-  // Invalid months/entries are skipped. Returns { imported, total }.
+  // Accepts both the v1 (bare month object, pounds) and v2 (versioned
+  // wrapper, pence) formats. Invalid months/entries are skipped.
+  // Returns { imported, total }.
   importJSON(text) {
     let parsed;
     try {
@@ -95,18 +137,16 @@ export class HistoryStore {
     } catch {
       throw new Error('not valid JSON');
     }
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    const incoming = toMonthEntries(parsed);
+    if (!incoming) {
       throw new Error('expected an object keyed by month');
     }
     const history = this.load();
     let imported = 0;
-    for (const [key, entry] of Object.entries(parsed)) {
-      if (!MONTH_KEY_PATTERN.test(key) || !isValidEntry(entry)) {
-        continue;
-      }
+    for (const [key, entry] of Object.entries(incoming)) {
       const existing = history[key];
       if (!existing || (entry.savedAt || '') > existing.savedAt) {
-        history[key] = normalizeEntry(entry);
+        history[key] = entry;
         imported++;
       }
     }
@@ -115,10 +155,10 @@ export class HistoryStore {
   }
 
   exportJSON() {
-    return JSON.stringify(this.load(), null, 2);
+    return JSON.stringify({ version: STORAGE_VERSION, months: this.load() }, null, 2);
   }
 
   persist(history) {
-    this.storage.setItem(STORAGE_KEY, JSON.stringify(history));
+    this.storage.setItem(STORAGE_KEY, JSON.stringify({ version: STORAGE_VERSION, months: history }));
   }
 }

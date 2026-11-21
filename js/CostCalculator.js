@@ -1,6 +1,8 @@
-import { DAYS_OF_WEEK, GOV_TOP_UP_PERCENTAGE, MAX_GOV_CONTRIBUTION_PER_PERIOD, REQUIRED_TOTAL_COST_FOR_MAX_BENEFIT, MONTH_NAMES } from './config.js';
+import { DAYS_OF_WEEK, MAX_GOV_CONTRIBUTION_PER_PERIOD, REQUIRED_TOTAL_COST_FOR_MAX_BENEFIT, MONTH_NAMES } from './config.js';
+import { formatGBP } from './format.js';
 import { DateUtil } from './DateUtil.js';
 
+// All money values are integer pence.
 export class CostCalculator {
   static calculateMonthlyCost(year, month, dayRates) {
     let cost = 0;
@@ -24,12 +26,17 @@ export class CostCalculator {
     return this.calculateMonthlyCost(year, month, inputs.currentDayRates);
   }
 
+  // 20% government top-up on a deposit amount, rounded to whole pence.
+  static govTopUp(pence) {
+    return Math.round(pence / 5);
+  }
+
   static calculate(inputs) {
     const { year, month, govContributionSoFar } = inputs;
 
     const totalMonthlyCost = this.resolveMonthlyTotal(inputs, year, month);
 
-    const potentialGovContribution = totalMonthlyCost * GOV_TOP_UP_PERCENTAGE;
+    const potentialGovContribution = this.govTopUp(totalMonthlyCost);
     const remainingGovAllowance = Math.max(0, MAX_GOV_CONTRIBUTION_PER_PERIOD - govContributionSoFar);
     const actualGovContribution = Math.min(potentialGovContribution, remainingGovAllowance);
     const userPays = totalMonthlyCost - actualGovContribution;
@@ -63,17 +70,17 @@ export class CostCalculator {
 
     if (!optimization.onTrack) {
       optimization.shortfall = REQUIRED_TOTAL_COST_FOR_MAX_BENEFIT - totalQuarterlyCost;
-      optimization.userContributionShortfall = optimization.shortfall * (1 - GOV_TOP_UP_PERCENTAGE);
-      optimization.extraGovTopUp = optimization.shortfall * GOV_TOP_UP_PERCENTAGE;
+      optimization.extraGovTopUp = this.govTopUp(optimization.shortfall);
+      optimization.userContributionShortfall = optimization.shortfall - optimization.extraGovTopUp;
 
       const currentMonthIndex = month - 1;
       const remainingMonthsInQuarter = quarterInfo.months.filter(m => m >= currentMonthIndex);
-      
+
       if (remainingMonthsInQuarter.length > 0) {
-        const extraPerMonth = optimization.userContributionShortfall / remainingMonthsInQuarter.length;
+        const extraPerMonth = Math.round(optimization.userContributionShortfall / remainingMonthsInQuarter.length);
         optimization.extraForCurrentMonth = extraPerMonth;
-        optimization.monthlyBreakdown = remainingMonthsInQuarter.map(mIndex => 
-          `<strong>£${extraPerMonth.toFixed(2)}</strong> in ${MONTH_NAMES[mIndex]}`
+        optimization.monthlyBreakdown = remainingMonthsInQuarter.map(mIndex =>
+          `<strong>${formatGBP(extraPerMonth)}</strong> in ${MONTH_NAMES[mIndex]}`
         ).join(', ');
       }
     }
