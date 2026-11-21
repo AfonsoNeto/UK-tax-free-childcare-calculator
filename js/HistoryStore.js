@@ -4,6 +4,10 @@ const STORAGE_KEY = 'tfc-history';
 const STORAGE_VERSION = 2;
 const MONTH_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+function monthKey(year, month) {
+  return `${year}-${String(month).padStart(2, '0')}`;
+}
+
 function defaultStorage() {
   return window.localStorage;
 }
@@ -114,16 +118,14 @@ export class HistoryStore {
   }
 
   // Sum of the government contributions saved for the months of the same
-  // quarter that fall before the given month, to prefill the input.
-  quarterGovContributionBefore(year, month) {
+  // top-up period that fall before the given month, to prefill the input.
+  periodGovContributionBefore(year, month, anchorMonth = 1) {
     const history = this.load();
-    const quarterMonths = DateUtil.getQuarterInfo(year, month).months;
-    return quarterMonths
-      .filter(m => m + 1 < month)
-      .reduce((sum, m) => {
-        const entry = history[`${year}-${String(m + 1).padStart(2, '0')}`];
-        return entry ? sum + entry.govContribution : sum;
-      }, 0);
+    const selectedKey = monthKey(year, month);
+    return DateUtil.getPeriodInfo(year, month, anchorMonth).months
+      .map(m => monthKey(m.year, m.month))
+      .filter(key => key < selectedKey)
+      .reduce((sum, key) => (history[key] ? sum + history[key].govContribution : sum), 0);
   }
 
   // Merge a JSON export into the stored history; the newest savedAt wins.

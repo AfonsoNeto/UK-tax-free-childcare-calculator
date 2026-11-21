@@ -75,7 +75,7 @@ test('calculateOptimization reports an on-track quarter', () => {
     currentDayRates: {},
     totalMonthlyCost: 90000
   });
-  assert.equal(optimization.periodName, 'October - December');
+  assert.equal(optimization.periodName, 'October - December 2026');
   assert.equal(optimization.totalQuarterlyCost, 270000);
   assert.equal(optimization.onTrack, true);
   assert.equal(optimization.shortfall, 0);
@@ -112,4 +112,22 @@ test('calculateOptimization uses the daily rates in daily mode', () => {
   assert.equal(optimization.shortfall, 250000 - 32500);
   // December is the last month of the quarter, so the whole user shortfall lands on it
   assert.ok(Math.abs(optimization.extraForCurrentMonth - (250000 - 32500) * 0.8) < 1e-9);
+});
+
+test('calculateOptimization honours the configured period anchor', () => {
+  // With periods starting in November, December is the second month of Nov-Jan
+  const optimization = CostCalculator.calculateOptimization({
+    year: 2026,
+    month: 12,
+    currentDayRates: {},
+    totalMonthlyCost: 80000
+  }, 11);
+  assert.equal(optimization.periodName, 'November - January 2027');
+  assert.equal(optimization.totalQuarterlyCost, 240000);
+  assert.equal(optimization.onTrack, false);
+  assert.equal(optimization.shortfall, 10000);
+  // December and January remain, so the shortfall splits over two months
+  assert.equal(optimization.extraForCurrentMonth, 4000);
+  assert.match(optimization.monthlyBreakdown, /in December/);
+  assert.match(optimization.monthlyBreakdown, /in January/);
 });

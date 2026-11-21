@@ -60,18 +60,23 @@ test('removeEntry deletes a month', () => {
   assert.deepEqual(store.load(), {});
 });
 
-test('quarterGovContributionBefore sums earlier months of the same quarter', () => {
+test('periodGovContributionBefore sums earlier months of the same period', () => {
   const store = new HistoryStore(memoryStorage());
   store.saveEntry('2026-01', entry({ govContribution: 16000 }));
   store.saveEntry('2026-02', entry({ govContribution: 14000 }));
   store.saveEntry('2026-04', entry({ govContribution: 18000 }));
-  store.saveEntry('2025-01', entry({ govContribution: 99900 }));
+  store.saveEntry('2025-12', entry({ govContribution: 5000 }));
 
-  assert.equal(store.quarterGovContributionBefore(2026, 1), 0);     // nothing before January
-  assert.equal(store.quarterGovContributionBefore(2026, 2), 16000); // January only
-  assert.equal(store.quarterGovContributionBefore(2026, 3), 30000); // January + February
-  assert.equal(store.quarterGovContributionBefore(2026, 4), 0);     // new quarter
-  assert.equal(store.quarterGovContributionBefore(2026, 5), 18000); // April only
+  // Calendar quarters (default anchor)
+  assert.equal(store.periodGovContributionBefore(2026, 1), 0);     // nothing before January
+  assert.equal(store.periodGovContributionBefore(2026, 2), 16000); // January only
+  assert.equal(store.periodGovContributionBefore(2026, 3), 30000); // January + February
+  assert.equal(store.periodGovContributionBefore(2026, 4), 0);     // new quarter
+  assert.equal(store.periodGovContributionBefore(2026, 5), 18000); // April only
+
+  // Period anchored to November wraps December into the next quarter
+  assert.equal(store.periodGovContributionBefore(2026, 1, 11), 5000);  // December 2025 only
+  assert.equal(store.periodGovContributionBefore(2026, 12, 11), 0);    // first month of its period
 });
 
 test('importJSON merges v2 exports, letting the newest savedAt win', () => {
