@@ -12,7 +12,7 @@ A simple web application to help UK parents estimate their monthly nursery costs
 - Factor in the 20% government top-up.
 - Show the breakdown of the user's share and the government's share.
 - Provides an optimization hint to maximize the government benefit.
-- **Month history:** save each calculated month (total cost, government contribution, amount paid) to your browser and browse it in a table.
+- **Month history:** save each calculated month (total cost, government contribution, amount paid) to your browser and browse it in a table, in a collapsible section below the calculator so the core stays front and centre.
   - Selecting a month prefills the government contribution paid so far in the current 3-month period from the saved months (you can still edit it).
   - Reload a saved month back into the form, or delete it.
   - **Export/Import JSON:** download the history as `tfc-history.json` for backup, or import it into another browser.

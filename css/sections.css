@@ -1,0 +1,43 @@
+.adv-section {
+  margin-top: 1.5rem;
+  border-top: 1px solid #E2E8F0;
+  padding-top: 0.5rem;
+}
+
+.adv-section:first-of-type {
+  margin-top: 2.5rem;
+}
+
+.adv-section summary {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2D3748;
+  cursor: pointer;
+  list-style: none;
+}
+
+.adv-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.adv-section summary::after {
+  content: '';
+  margin-left: auto;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-right: 2px solid #4A5568;
+  border-bottom: 2px solid #4A5568;
+  transform: rotate(-45deg);
+  transition: transform 0.2s;
+}
+
+.adv-section[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.adv-body {
+  padding: 0.5rem 0.25rem 1rem;
+}

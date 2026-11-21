@@ -11,11 +11,12 @@ export class UI {
     this.monthlyTotalInput = document.getElementById('monthly-total');
     this.modeRadios = document.querySelectorAll('input[name="input-mode"]');
     this.saveMonthButton = document.getElementById('save-month');
-    this.historyContainer = document.getElementById('history-container');
+    this.historySection = document.getElementById('history-section');
     this.historyTableContainer = document.getElementById('history-table-container');
     this.exportHistoryButton = document.getElementById('export-history');
     this.importHistoryButton = document.getElementById('import-history');
     this.importFileInput = document.getElementById('import-file');
+    this.settingsSection = document.getElementById('settings-section');
     this.resultsContainer = document.getElementById('results-container');
     this.resultsBreakdown = document.getElementById('results-breakdown');
     this.optimizationContainer = document.getElementById('optimization-container');
