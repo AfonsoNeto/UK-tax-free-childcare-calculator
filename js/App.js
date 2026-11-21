@@ -1,7 +1,7 @@
 import { UI } from './UI.js';
 import { CostCalculator } from './CostCalculator.js';
 import { ThemeSwitcher } from './ThemeSwitcher.js';
-import { HistoryStore } from './HistoryStore.js';
+import { HistoryStore, findLatestRates, findLatestMonthlyTotal } from './HistoryStore.js';
 import { Settings } from './Settings.js';
 import { MAX_GOV_CONTRIBUTION_PER_PERIOD } from './config.js';
 
@@ -62,6 +62,8 @@ export class App {
       }
     });
     this.ui.saveMonthButton.addEventListener('click', () => this.saveMonth());
+    this.ui.useLastRatesButton.addEventListener('click', () => this.applyLastSavedRates());
+    this.ui.useLastTotalButton.addEventListener('click', () => this.applyLastSavedTotal());
     this.ui.exportHistoryButton.addEventListener('click', () => this.exportHistory());
     this.ui.importHistoryButton.addEventListener('click', () => this.ui.importFileInput.click());
     this.ui.importFileInput.addEventListener('change', (e) => {
@@ -143,9 +145,37 @@ export class App {
       this.ui.setDayRates(entry.dayRates);
     } else {
       this.ui.setMode('monthly');
-      this.ui.monthlyTotalInput.value = entry.totalMonthlyCost;
+      this.ui.monthlyTotalInput.value = entry.totalMonthlyCost / 100;
     }
     this.prefillGovContribution();
+    this.calculate();
+  }
+
+  // Prefill the form from the most relevant saved month so the daily
+  // rate (or invoice total) never needs digging out.
+  applyLastSavedRates() {
+    const [year, month] = this.ui.monthYearInput.value.split('-').map(Number);
+    if (!year || !month) {
+      return;
+    }
+    const found = findLatestRates(this.historyStore.load(), this.monthKey(year, month));
+    if (!found) {
+      return;
+    }
+    this.ui.setDayRates(found.entry.dayRates);
+    this.calculate();
+  }
+
+  applyLastSavedTotal() {
+    const [year, month] = this.ui.monthYearInput.value.split('-').map(Number);
+    if (!year || !month) {
+      return;
+    }
+    const found = findLatestMonthlyTotal(this.historyStore.load(), this.monthKey(year, month));
+    if (!found) {
+      return;
+    }
+    this.ui.setMonthlyTotal(found.entry.totalMonthlyCost);
     this.calculate();
   }
 

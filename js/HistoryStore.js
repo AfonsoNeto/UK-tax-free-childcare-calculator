@@ -66,6 +66,27 @@ function isValidHistoryObject(parsed) {
   return Boolean(parsed) && typeof parsed === 'object' && !Array.isArray(parsed);
 }
 
+// Newest history entry (by month key) matching the predicate, preferring
+// months not after monthKey and falling back to the newest overall.
+// Returns { key, entry } or null.
+export function findLatestEntry(history, monthKey, predicate = () => true) {
+  const matching = Object.keys(history).sort().filter(key => predicate(history[key]));
+  const upToMonth = matching.filter(key => key <= monthKey);
+  const best = upToMonth.length ? upToMonth[upToMonth.length - 1]
+    : (matching.length ? matching[matching.length - 1] : null);
+  return best ? { key: best, entry: history[best] } : null;
+}
+
+// Newest entry that carries daily rates (saved in daily-rates mode).
+export function findLatestRates(history, monthKey) {
+  return findLatestEntry(history, monthKey, entry => entry.dayRates && Object.keys(entry.dayRates).length > 0);
+}
+
+// Newest entry with a monthly total (any saved month qualifies).
+export function findLatestMonthlyTotal(history, monthKey) {
+  return findLatestEntry(history, monthKey, entry => entry.totalMonthlyCost > 0);
+}
+
 // Returns the months object of a parsed payload in the v2 (pence) shape,
 // or null if the payload is not usable history data.
 function toMonthEntries(parsed) {
