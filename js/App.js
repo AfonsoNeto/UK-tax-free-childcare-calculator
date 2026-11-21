@@ -65,6 +65,7 @@ export class App {
       this.calculate();
     });
     this.ui.govContributionInput.addEventListener('input', () => this.calculate());
+    this.ui.monthlyTotalInput.addEventListener('input', () => this.calculate());
     this.ui.leftoverBalanceInput.addEventListener('input', () => {
       this.settings.setLeftoverBalance(UI.poundsToPence(this.ui.leftoverBalanceInput.value));
       this.calculate();
