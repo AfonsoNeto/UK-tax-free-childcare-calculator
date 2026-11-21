@@ -63,6 +63,10 @@ A simple web application to help UK parents estimate their monthly nursery costs
     -   Use **Load** on a saved month to bring its inputs back into the form.
     -   Use **Export JSON** to download your history as a file, and **Import JSON** to restore it (e.g. in another browser).
 
+## Running online
+
+The site deploys to GitHub Pages automatically on every push to `master` (see `.github/workflows/deploy.yml`) at https://afonsoneto.github.io/UK-tax-free-childcare-calculator/ — installable on your phone like an app thanks to the PWA support. If the first deployment fails because Pages is not yet enabled, flip once to **Settings → Pages → Source: GitHub Actions**.
+
 ## Running the tests
 
 The calculation and storage logic is covered by tests that use Node.js's built-in test runner — no dependencies to install.
