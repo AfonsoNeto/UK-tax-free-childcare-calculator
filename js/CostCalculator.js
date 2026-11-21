@@ -48,13 +48,19 @@ export class CostCalculator {
     };
   }
 
-  static calculateOptimization(inputs, anchorMonth = 1) {
+  // The period projection uses saved totals for months that already have a
+  // history entry (they reflect what actually happened) and only projects the
+  // current rates for the selected month and the months after it.
+  static calculateOptimization(inputs, anchorMonth = 1, history = {}) {
     const { year, month } = inputs;
     const periodInfo = DateUtil.getPeriodInfo(year, month, anchorMonth);
 
     let totalPeriodCost = 0;
     periodInfo.months.forEach(m => {
-      totalPeriodCost += this.resolveMonthlyTotal(inputs, m.year, m.month);
+      const key = `${m.year}-${String(m.month).padStart(2, '0')}`;
+      const isPastMonth = m.year < year || (m.year === year && m.month < month);
+      const saved = isPastMonth ? history[key] : null;
+      totalPeriodCost += saved ? saved.totalMonthlyCost : this.resolveMonthlyTotal(inputs, m.year, m.month);
     });
 
     // The selected month sits at `offset` in the chronological month list,
