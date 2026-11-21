@@ -12,6 +12,7 @@ export class UI {
     this.daysContainer = document.getElementById('days-container');
     this.monthlyTotalGroup = document.getElementById('monthly-total-group');
     this.monthlyTotalInput = document.getElementById('monthly-total');
+    this.leftoverBalanceInput = document.getElementById('leftover-balance');
     this.modeRadios = document.querySelectorAll('input[name="input-mode"]');
     this.saveMonthButton = document.getElementById('save-month');
     this.historySection = document.getElementById('history-section');
@@ -112,6 +113,7 @@ export class UI {
   getInputs() {
     const [year, month] = this.monthYearInput.value.split('-').map(Number);
     const govContributionSoFar = UI.poundsToPence(this.govContributionInput.value);
+    const leftoverBalance = UI.poundsToPence(this.leftoverBalanceInput.value);
 
     const currentDayRates = {};
     let totalMonthlyCost = 0;
@@ -134,7 +136,7 @@ export class UI {
       });
     }
 
-    return { year, month, govContributionSoFar, currentDayRates, totalMonthlyCost, hasInputs };
+    return { year, month, govContributionSoFar, currentDayRates, totalMonthlyCost, leftoverBalance, hasInputs };
   }
 
   toggleRateInput(checkbox, focus = true) {
@@ -208,8 +210,28 @@ export class UI {
   }
 
   displayResults(results, extraForCurrentMonth) {
-    const { totalMonthlyCost, actualGovContribution, userPays } = results;
+    const { totalMonthlyCost, actualGovContribution, userPays, transferToAccount, balanceAfterPayment, leftoverBalance } = results;
+    const hasLeftover = leftoverBalance > 0;
     const maximizedUserPays = userPays + extraForCurrentMonth;
+
+    const leftoverRows = hasLeftover ? `
+      <div class="result-item">
+        <span class="result-label" title="The amount to pay into your TFC account now, so the balance plus the government top-up covers this month's invoice.">Transfer to Account</span>
+        <span class="result-value transfer">${formatGBP(transferToAccount)}</span>
+      </div>
+      <div class="result-item">
+        <span class="result-label">Balance After Paying</span>
+        <span class="result-value">${formatGBP(balanceAfterPayment)}</span>
+      </div>
+    ` : '';
+
+    const maximizedRow = hasLeftover ? '' : `
+      <div class="result-item">
+        <span class="result-label" title="This is your monthly payment plus any extra needed to get the full £500 government top-up for the quarter.">You Pay (Maximized Benefit)</span>
+        <span class="result-value user-pays">${formatGBP(maximizedUserPays)}</span>
+      </div>
+    `;
+
     this.resultsBreakdown.innerHTML = `
       <div class="result-item">
         <span class="result-label">Total Monthly Cost</span>
@@ -223,10 +245,8 @@ export class UI {
         <span class="result-label">You Pay</span>
         <span class="result-value user-pays">${formatGBP(userPays)}</span>
       </div>
-      <div class="result-item">
-        <span class="result-label" title="This is your monthly payment plus any extra needed to get the full £500 government top-up for the quarter.">You Pay (Maximized Benefit)</span>
-        <span class="result-value user-pays">${formatGBP(maximizedUserPays)}</span>
-      </div>
+      ${leftoverRows}
+      ${maximizedRow}
     `;
   }
 

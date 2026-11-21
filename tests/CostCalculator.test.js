@@ -67,6 +67,67 @@ test('calculate uses the monthly total directly in monthly-total mode', () => {
   assert.equal(results.userPays, 64000);
 });
 
+test('calculate computes the transfer needed when the account has a leftover balance', () => {
+  const results = CostCalculator.calculate({
+    year: 2026,
+    month: 11,
+    govContributionSoFar: 0,
+    currentDayRates: {},
+    totalMonthlyCost: 80000,
+    leftoverBalance: 20000
+  });
+  // £100 of the invoice is covered by the balance; £600 still needs deposit + top-up
+  assert.equal(results.leftToCover, 60000);
+  assert.equal(results.transferToAccount, 48000);
+  assert.equal(results.actualGovContribution, 12000);
+  assert.equal(results.balanceAfterPayment, 0);
+  // userPays keeps its meaning: the user's share of the whole invoice
+  assert.equal(results.userPays, 68000);
+});
+
+test('calculate respects the period cap when transferring with a leftover balance', () => {
+  const results = CostCalculator.calculate({
+    year: 2026,
+    month: 11,
+    govContributionSoFar: 45000,
+    currentDayRates: {},
+    totalMonthlyCost: 80000,
+    leftoverBalance: 10000
+  });
+  // £700 still to cover, but only £50 of top-up remains
+  assert.equal(results.transferToAccount, 65000);
+  assert.equal(results.actualGovContribution, 5000);
+  assert.equal(results.balanceAfterPayment, 0);
+});
+
+test('calculate reports zero transfer when the balance covers the invoice', () => {
+  const results = CostCalculator.calculate({
+    year: 2026,
+    month: 11,
+    govContributionSoFar: 0,
+    currentDayRates: {},
+    totalMonthlyCost: 80000,
+    leftoverBalance: 90000
+  });
+  assert.equal(results.transferToAccount, 0);
+  assert.equal(results.actualGovContribution, 0);
+  assert.equal(results.balanceAfterPayment, 10000);
+  assert.equal(results.userPays, 80000);
+});
+
+test('calculate without a leftover keeps transferToAccount equal to userPays', () => {
+  const results = CostCalculator.calculate({
+    year: 2026,
+    month: 11,
+    govContributionSoFar: 0,
+    currentDayRates: {},
+    totalMonthlyCost: 80000
+  });
+  assert.equal(results.transferToAccount, 64000);
+  assert.equal(results.userPays, 64000);
+  assert.equal(results.balanceAfterPayment, 0);
+});
+
 test('govTopUp rounds to whole pence', () => {
   assert.equal(CostCalculator.govTopUp(109200), 21840);
   assert.equal(CostCalculator.govTopUp(109201), 21840);

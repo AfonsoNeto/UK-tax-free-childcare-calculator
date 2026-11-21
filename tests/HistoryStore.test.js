@@ -53,6 +53,26 @@ test('saveEntry rejects invalid month keys and entries', () => {
   assert.throws(() => store.saveEntry('2026-01', entry({ totalMonthlyCost: 800.5 })));
 });
 
+test('saveEntry keeps transfer and leftover fields', () => {
+  const store = new HistoryStore(memoryStorage());
+  store.saveEntry('2026-01', entry({ transferAmount: 48000, leftoverBefore: 20000 }));
+  const history = store.load();
+  assert.equal(history['2026-01'].transferAmount, 48000);
+  assert.equal(history['2026-01'].leftoverBefore, 20000);
+});
+
+test('entries saved before the leftover feature load with null fields', () => {
+  const storage = memoryStorage();
+  const store = new HistoryStore(storage);
+  storage.setItem('tfc-history', JSON.stringify({
+    version: 2,
+    months: { '2026-01': { totalMonthlyCost: 80000, govContribution: 16000, userPays: 64000, savedAt: '2026-01-01T00:00:00.000Z' } }
+  }));
+  const history = store.load();
+  assert.equal(history['2026-01'].transferAmount, null);
+  assert.equal(history['2026-01'].leftoverBefore, null);
+});
+
 test('removeEntry deletes a month', () => {
   const store = new HistoryStore(memoryStorage());
   store.saveEntry('2026-01', entry());
