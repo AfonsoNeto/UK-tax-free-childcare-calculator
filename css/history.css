@@ -102,3 +102,22 @@
 .history-table .auto-topup-value {
   font-weight: 600;
 }
+
+.history-chart {
+  width: 100%;
+  height: auto;
+  max-height: 240px;
+}
+
+.history-chart .chart-user {
+  fill: #48BB78;
+}
+
+.history-chart .chart-gov {
+  fill: #4299E1;
+}
+
+.history-chart .chart-label {
+  fill: #4A5568;
+  font-size: 10px;
+}

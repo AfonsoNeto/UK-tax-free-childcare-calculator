@@ -1,5 +1,6 @@
 import { DAYS_OF_WEEK, MONTH_NAMES, MAX_GOV_CONTRIBUTION_PER_PERIOD } from './config.js';
 import { formatGBP } from './format.js';
+import { buildChartData, renderChartSVG } from './HistoryChart.js';
 
 export class UI {
   constructor() {
@@ -18,6 +19,7 @@ export class UI {
     this.modeRadios = document.querySelectorAll('input[name="input-mode"]');
     this.saveMonthButton = document.getElementById('save-month');
     this.historySection = document.getElementById('history-section');
+    this.historyChartContainer = document.getElementById('history-chart-container');
     this.historyTableContainer = document.getElementById('history-table-container');
     this.exportHistoryButton = document.getElementById('export-history');
     this.importHistoryButton = document.getElementById('import-history');
@@ -183,6 +185,7 @@ export class UI {
     const entries = Object.entries(history).sort((a, b) => b[0].localeCompare(a[0]));
     this.useLastRatesButton.classList.toggle('hidden', !entries.some(([, entry]) => entry.dayRates && Object.keys(entry.dayRates).length > 0));
     this.useLastTotalButton.classList.toggle('hidden', !entries.some(([, entry]) => entry.totalMonthlyCost > 0));
+    this.historyChartContainer.innerHTML = renderChartSVG(buildChartData(history));
     if (entries.length === 0) {
       this.historyTableContainer.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">No saved months yet. Calculate a month and click &quot;Save this month&quot;.</p>';
       return;
