@@ -25,6 +25,8 @@ function normalizeEntry(entry) {
     totalMonthlyCost: Number(entry.totalMonthlyCost),
     govContribution: Number(entry.govContribution),
     userPays: Number(entry.userPays),
+    transferAmount: Number.isInteger(Number(entry.transferAmount)) ? Number(entry.transferAmount) : null,
+    leftoverBefore: Number.isInteger(Number(entry.leftoverBefore)) ? Number(entry.leftoverBefore) : null,
     dayRates: entry.dayRates && typeof entry.dayRates === 'object' ? entry.dayRates : null,
     savedAt: typeof entry.savedAt === 'string' ? entry.savedAt : ''
   };
@@ -43,6 +45,8 @@ function normalizeMonthEntries(parsed, fromV1) {
       totalMonthlyCost: Number(entry.totalMonthlyCost) * scale,
       govContribution: Number(entry.govContribution) * scale,
       userPays: Number(entry.userPays) * scale,
+      transferAmount: fromV1 ? Math.round(Number(entry.transferAmount) * 100) : entry.transferAmount,
+      leftoverBefore: fromV1 ? Math.round(Number(entry.leftoverBefore) * 100) : entry.leftoverBefore,
       dayRates: entry.dayRates,
       savedAt: entry.savedAt
     });

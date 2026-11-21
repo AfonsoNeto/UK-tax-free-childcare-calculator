@@ -41,3 +41,32 @@
 .adv-body {
   padding: 0.5rem 0.25rem 1rem;
 }
+
+.inline-disclosure summary {
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #2B6CB0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.inline-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.inline-disclosure summary::before {
+  content: '+';
+  margin-right: 0.4rem;
+  font-weight: 700;
+}
+
+.inline-disclosure[open] summary::before {
+  content: '−';
+}
+
+.inline-disclosure[open] summary {
+  margin-bottom: 0.5rem;
+}

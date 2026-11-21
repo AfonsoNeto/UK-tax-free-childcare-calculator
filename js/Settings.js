@@ -1,4 +1,5 @@
 const PERIOD_ANCHOR_KEY = 'tfc-period-anchor';
+const LEFTOVER_KEY = 'tfc-leftover';
 
 function defaultStorage() {
   return window.localStorage;
@@ -23,5 +24,18 @@ export class Settings {
       throw new Error(`Invalid period anchor month: ${month}`);
     }
     this.storage.setItem(PERIOD_ANCHOR_KEY, String(month));
+  }
+
+  // Money already sitting in the TFC account, as integer pence.
+  getLeftoverBalance() {
+    const raw = Number(this.storage.getItem(LEFTOVER_KEY));
+    return Number.isInteger(raw) && raw >= 0 ? raw : 0;
+  }
+
+  setLeftoverBalance(pence) {
+    if (!Number.isInteger(pence) || pence < 0) {
+      throw new Error(`Invalid leftover balance: ${pence}`);
+    }
+    this.storage.setItem(LEFTOVER_KEY, String(pence));
   }
 }

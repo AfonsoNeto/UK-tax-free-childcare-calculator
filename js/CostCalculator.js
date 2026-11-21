@@ -32,19 +32,42 @@ export class CostCalculator {
   }
 
   static calculate(inputs) {
-    const { year, month, govContributionSoFar } = inputs;
+    const { year, month, govContributionSoFar, leftoverBalance } = inputs;
 
     const totalMonthlyCost = this.resolveMonthlyTotal(inputs, year, month);
-
-    const potentialGovContribution = this.govTopUp(totalMonthlyCost);
     const remainingGovAllowance = Math.max(0, MAX_GOV_CONTRIBUTION_PER_PERIOD - govContributionSoFar);
-    const actualGovContribution = Math.min(potentialGovContribution, remainingGovAllowance);
+
+    // Whatever the existing balance cannot cover still has to go into the
+    // account as a fresh deposit (earning top-up) plus government money.
+    const leftToCover = Math.max(0, totalMonthlyCost - (leftoverBalance || 0));
+
+    let transferToAccount;
+    let actualGovContribution;
+    if (leftToCover === 0) {
+      transferToAccount = 0;
+      actualGovContribution = 0;
+    } else {
+      const uncappedTransfer = leftToCover - this.govTopUp(leftToCover);
+      if (leftToCover - uncappedTransfer <= remainingGovAllowance) {
+        transferToAccount = uncappedTransfer;
+        actualGovContribution = leftToCover - uncappedTransfer;
+      } else {
+        transferToAccount = leftToCover - remainingGovAllowance;
+        actualGovContribution = remainingGovAllowance;
+      }
+    }
+
     const userPays = totalMonthlyCost - actualGovContribution;
+    const balanceAfterPayment = (leftoverBalance || 0) + transferToAccount + actualGovContribution - totalMonthlyCost;
 
     return {
       totalMonthlyCost,
       actualGovContribution,
-      userPays
+      userPays,
+      transferToAccount,
+      balanceAfterPayment,
+      leftToCover,
+      leftoverBalance: leftoverBalance || 0
     };
   }
 

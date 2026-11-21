@@ -43,3 +43,33 @@ test('setPeriodAnchorMonth rejects invalid months', () => {
   assert.throws(() => settings.setPeriodAnchorMonth(13));
   assert.throws(() => settings.setPeriodAnchorMonth(3.5));
 });
+
+test('leftover balance defaults to zero and persists', () => {
+  const storage = memoryStorage();
+  const settings = new Settings(storage);
+  assert.equal(settings.getLeftoverBalance(), 0);
+
+  settings.setLeftoverBalance(50000);
+  assert.equal(settings.getLeftoverBalance(), 50000);
+  assert.equal(storage.getItem('tfc-leftover'), '50000');
+});
+
+test('getLeftoverBalance tolerates corrupt values', () => {
+  const storage = memoryStorage();
+  storage.setItem('tfc-leftover', 'not a number');
+  const settings = new Settings(storage);
+  assert.equal(settings.getLeftoverBalance(), 0);
+
+  storage.setItem('tfc-leftover', '-100');
+  assert.equal(settings.getLeftoverBalance(), 0);
+
+  storage.setItem('tfc-leftover', '10.5');
+  assert.equal(settings.getLeftoverBalance(), 0);
+});
+
+test('setLeftoverBalance rejects invalid values', () => {
+  const settings = new Settings(memoryStorage());
+  assert.throws(() => settings.setLeftoverBalance(-1));
+  assert.throws(() => settings.setLeftoverBalance(10.5));
+  assert.throws(() => settings.setLeftoverBalance('oops'));
+});

@@ -5,6 +5,7 @@ import { HistoryStore } from './HistoryStore.js';
 import { Settings } from './Settings.js';
 import { MAX_GOV_CONTRIBUTION_PER_PERIOD } from './config.js';
 
+
 export class App {
   constructor() {
     this.ui = new UI();
@@ -18,6 +19,7 @@ export class App {
     document.addEventListener('DOMContentLoaded', () => {
       this.ui.init();
       this.ui.setPeriodAnchor(this.settings.getPeriodAnchorMonth());
+      this.ui.leftoverBalanceInput.value = (this.settings.getLeftoverBalance() / 100).toFixed(2);
       this.addEventListeners();
       this.renderHistory();
       this.prefillGovContribution();
@@ -32,6 +34,10 @@ export class App {
       this.calculate();
     });
     this.ui.govContributionInput.addEventListener('input', () => this.calculate());
+    this.ui.leftoverBalanceInput.addEventListener('input', () => {
+      this.settings.setLeftoverBalance(UI.poundsToPence(this.ui.leftoverBalanceInput.value));
+      this.calculate();
+    });
     this.ui.periodAnchorSelect.addEventListener('change', () => {
       this.settings.setPeriodAnchorMonth(this.ui.getPeriodAnchor());
       this.prefillGovContribution();
@@ -119,6 +125,8 @@ export class App {
       totalMonthlyCost: results.totalMonthlyCost,
       govContribution: results.actualGovContribution,
       userPays: results.userPays,
+      transferAmount: results.transferToAccount,
+      leftoverBefore: inputs.leftoverBalance,
       dayRates: inputs.totalMonthlyCost > 0 ? null : inputs.currentDayRates
     });
     this.renderHistory();

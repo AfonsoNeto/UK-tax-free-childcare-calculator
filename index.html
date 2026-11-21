@@ -73,6 +73,21 @@
             </div>
             <p class="text-xs text-gray-500 mt-2">Enter the full amount from your nursery invoice; the daily rate is not needed.</p>
           </div>
+
+          <!-- Leftover balance (optional) -->
+          <div class="input-group">
+            <details class="inline-disclosure" id="leftover-disclosure">
+              <summary>Already have money in the account?</summary>
+              <div class="adv-body">
+                <label for="leftover-balance" class="label">Current balance in your TFC account</label>
+                <div class="relative">
+                  <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">£</span>
+                  <input type="number" id="leftover-balance" class="input pl-8" placeholder="0.00" min="0" step="0.01">
+                </div>
+                <p class="text-xs text-gray-500 mt-2">The results will show exactly how much to transfer so the account covers this month's invoice.</p>
+              </div>
+            </details>
+          </div>
         </div>
         
         <!-- Right Column: Results -->

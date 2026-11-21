@@ -73,6 +73,10 @@ body.dark-theme {
   border-color: var(--text-gray-500);
 }
 
+.dark-theme .inline-disclosure summary {
+  color: #63B3ED;
+}
+
 .dark-theme .history-table th,
 .dark-theme .history-table td {
   border-color: var(--border-color);
@@ -123,6 +127,10 @@ body.dark-theme {
 }
 
 .dark-theme .result-value.user-pays {
+  color: #68D391;
+}
+
+.dark-theme .result-value.transfer {
   color: #68D391;
 }
 
