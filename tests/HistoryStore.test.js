@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { HistoryStore } from '../js/HistoryStore.js';
+import { HistoryStore, findLatestRates, findLatestMonthlyTotal, findLatestEntry } from '../js/HistoryStore.js';
 
 // Minimal localStorage stand-in so the store can be tested without a DOM.
 function memoryStorage() {
@@ -15,6 +15,14 @@ function memoryStorage() {
 // All money values are integer pence.
 function entry(overrides = {}) {
   return { totalMonthlyCost: 80000, govContribution: 16000, userPays: 64000, dayRates: null, ...overrides };
+}
+
+function ratesEntry(days = { Monday: 2000, Tuesday: 1500 }) {
+  return { totalMonthlyCost: 16000, govContribution: 3200, userPays: 12800, dayRates: days, savedAt: '2026-01-01T00:00:00.000Z' };
+}
+
+function monthlyEntry(total = 80000) {
+  return { totalMonthlyCost: total, govContribution: 16000, userPays: 64000, dayRates: null, savedAt: '2026-01-01T00:00:00.000Z' };
 }
 
 test('saveEntry and load round-trip an entry', () => {
@@ -219,4 +227,55 @@ test('exportJSON produces a v2 payload with pence', () => {
   assert.equal(parsed.version, 2);
   assert.equal(parsed.months['2026-01'].totalMonthlyCost, 80000);
   assert.equal(parsed.months['2026-01'].govContribution, 16000);
+});
+
+test('findLatestRates picks the newest month not after the selected month', () => {
+  const history = {
+    '2026-09': ratesEntry({ Monday: 1800 }),
+    '2026-11': ratesEntry({ Monday: 2200 })
+  };
+  const found = findLatestRates(history, '2026-12');
+  assert.equal(found.key, '2026-11');
+  assert.deepEqual(found.entry.dayRates, { Monday: 2200 });
+
+  const constrained = findLatestRates(history, '2026-10');
+  assert.equal(constrained.key, '2026-09');
+  assert.deepEqual(constrained.entry.dayRates, { Monday: 1800 });
+});
+
+test('findLatestRates falls back to the newest month overall', () => {
+  const history = { '2026-11': ratesEntry({ Monday: 2200 }) };
+  const found = findLatestRates(history, '2026-03');
+  assert.equal(found.key, '2026-11');
+});
+
+test('findLatestRates skips entries without rates', () => {
+  const history = {
+    '2026-10': monthlyEntry(),           // monthly mode: dayRates is null
+    '2026-11': ratesEntry({ Monday: 2200 })
+  };
+  const found = findLatestRates(history, '2026-12');
+  assert.equal(found.key, '2026-11');
+  assert.deepEqual(found.entry.dayRates, { Monday: 2200 });
+
+  const onlyMonthly = findLatestRates({ '2026-10': monthlyEntry() }, '2026-12');
+  assert.equal(onlyMonthly, null);
+});
+
+test('findLatestMonthlyTotal picks the newest total and tolerates empty history', () => {
+  const history = { '2026-10': monthlyEntry(75000), '2026-11': monthlyEntry(80000) };
+  assert.equal(findLatestMonthlyTotal(history, '2026-12').entry.totalMonthlyCost, 80000);
+  assert.equal(findLatestMonthlyTotal(history, '2026-10').entry.totalMonthlyCost, 75000);
+  assert.equal(findLatestMonthlyTotal({}, '2026-12'), null);
+});
+
+test('findLatestEntry applies its predicate before ordering', () => {
+  const history = {
+    '2026-08': ratesEntry({ Monday: 1000 }),
+    '2026-09': monthlyEntry(),
+    '2026-10': ratesEntry({ Monday: 1200 })
+  };
+  assert.equal(findLatestEntry(history, '2026-09', e => e.dayRates).key, '2026-08');
+  assert.equal(findLatestEntry(history, '2026-12', e => e.dayRates).key, '2026-10');
+  assert.equal(findLatestEntry(history, '2026-12').key, '2026-10');
 });

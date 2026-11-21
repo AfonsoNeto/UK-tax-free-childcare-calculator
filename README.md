@@ -9,6 +9,7 @@ A simple web application to help UK parents estimate their monthly nursery costs
 - Calculate total monthly childcare costs based on daily rates and selected days.
 - Amounts are displayed with thousands separators (e.g. £1,092.35); they are stored as integer pence internally to avoid rounding drift.
 - **Monthly total input:** enter the full amount from your monthly nursery invoice instead of digging out the daily rate.
+- **Rate prefill:** "Use last saved rates" / "Use last saved total" buttons fill the form from the most recent saved month, so you rarely need to re-enter anything.
 - **Leftover balance:** already have money sitting in your TFC account? Enter it and the results show the exact amount to transfer so the account covers this month's invoice (respecting the period cap).
 - Factor in the 20% government top-up.
 - **Configurable top-up period:** the £500 cap runs per 3-month period, anchored to the month you opened your childcare account rather than calendar quarters — set it in Settings, and the remaining allowance is shown under the government contribution input.
