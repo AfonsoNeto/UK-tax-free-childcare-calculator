@@ -31,6 +31,12 @@ export class CostCalculator {
     return Math.round(pence / 5);
   }
 
+  // The government adds £2 for every £8 paid into the account, so the
+  // top-up received for an actual deposit is exactly 25% of it.
+  static deriveGovTopUp(actualUserPaidPence) {
+    return actualUserPaidPence > 0 ? Math.round(actualUserPaidPence / 4) : null;
+  }
+
   static calculate(inputs) {
     const { year, month, govContributionSoFar, leftoverBalance } = inputs;
 

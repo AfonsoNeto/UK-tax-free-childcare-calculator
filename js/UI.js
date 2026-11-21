@@ -179,7 +179,7 @@ export class UI {
     this.monthlyTotalInput.value = totalPence / 100;
   }
 
-  renderHistory(history) {
+  renderHistory(history, editingMonth = null) {
     const entries = Object.entries(history).sort((a, b) => b[0].localeCompare(a[0]));
     this.useLastRatesButton.classList.toggle('hidden', !entries.some(([, entry]) => entry.dayRates && Object.keys(entry.dayRates).length > 0));
     this.useLastTotalButton.classList.toggle('hidden', !entries.some(([, entry]) => entry.totalMonthlyCost > 0));
@@ -190,14 +190,38 @@ export class UI {
     const rows = entries.map(([key, entry]) => {
       const [year, month] = key.split('-').map(Number);
       const label = `${MONTH_NAMES[month - 1]} ${year}`;
+      if (key === editingMonth) {
+        return `
+          <tr class="editing-row" data-month="${key}">
+            <td>${label}</td>
+            <td class="num"><input type="number" class="input edit-input num-input" data-field="totalMonthlyCost" value="${entry.totalMonthlyCost / 100}" min="0" step="0.01"></td>
+            <td class="num"><input type="number" class="input edit-input num-input" data-field="govContribution" value="${entry.govContribution / 100}" min="0" step="0.01"></td>
+            <td class="num"><input type="number" class="input edit-input num-input" data-field="userPays" value="${entry.userPays / 100}" min="0" step="0.01"></td>
+            <td class="num"><input type="number" class="input edit-input num-input actual-paid-input" data-field="actualUserPaid" value="${entry.actualUserPaid != null ? entry.actualUserPaid / 100 : ''}" min="0" step="0.01" placeholder="—"></td>
+            <td class="num auto-topup-cell"><span class="auto-topup-value">${entry.actualGovTopUp != null ? formatGBP(entry.actualGovTopUp) : '—'}</span></td>
+            <td class="actions">
+              <button type="button" class="btn btn-small btn-primary" data-action="save-edit" data-month="${key}">Save</button>
+              <button type="button" class="btn btn-small btn-secondary" data-action="cancel-edit" data-month="${key}">Cancel</button>
+            </td>
+          </tr>`;
+      }
+      const actualPaidCell = entry.actualUserPaid != null
+        ? `<td class="num${entry.actualUserPaid !== entry.userPays ? ' differs' : ''}">${formatGBP(entry.actualUserPaid)}</td>`
+        : '<td class="num muted">—</td>';
+      const actualTopUpCell = entry.actualGovTopUp != null
+        ? `<td class="num${entry.actualGovTopUp !== entry.govContribution ? ' differs' : ''}">${formatGBP(entry.actualGovTopUp)}</td>`
+        : '<td class="num muted">—</td>';
       return `
         <tr data-month="${key}">
           <td>${label}</td>
           <td class="num">${formatGBP(entry.totalMonthlyCost)}</td>
           <td class="num">${formatGBP(entry.govContribution)}</td>
           <td class="num">${formatGBP(entry.userPays)}</td>
+          ${actualPaidCell}
+          ${actualTopUpCell}
           <td class="actions">
             <button type="button" class="btn btn-small btn-secondary" data-action="load" data-month="${key}">Load</button>
+            <button type="button" class="btn btn-small btn-secondary" data-action="edit" data-month="${key}">Edit</button>
             <button type="button" class="btn btn-small btn-danger" data-action="delete" data-month="${key}">Delete</button>
           </td>
         </tr>`;
@@ -210,6 +234,8 @@ export class UI {
             <th class="num">Total Cost</th>
             <th class="num">Gov Contribution</th>
             <th class="num">You Pay</th>
+            <th class="num">Actual Paid</th>
+            <th class="num">Actual Top-up</th>
             <th></th>
           </tr>
         </thead>

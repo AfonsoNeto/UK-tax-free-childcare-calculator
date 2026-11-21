@@ -4,7 +4,7 @@ import { ThemeSwitcher } from './ThemeSwitcher.js';
 import { HistoryStore, findLatestRates, findLatestMonthlyTotal } from './HistoryStore.js';
 import { Settings } from './Settings.js';
 import { MAX_GOV_CONTRIBUTION_PER_PERIOD } from './config.js';
-
+import { formatGBP } from './format.js';
 
 export class App {
   constructor() {
@@ -13,6 +13,7 @@ export class App {
     this.themeSwitcher = new ThemeSwitcher();
     this.historyStore = new HistoryStore();
     this.settings = new Settings();
+    this.editingMonth = null;
   }
 
   init() {
@@ -82,7 +83,24 @@ export class App {
         this.loadMonth(button.dataset.month);
       } else if (button.dataset.action === 'delete') {
         this.deleteMonth(button.dataset.month);
+      } else if (button.dataset.action === 'edit') {
+        this.editMonth(button.dataset.month);
+      } else if (button.dataset.action === 'save-edit') {
+        this.saveMonthEdit(button.dataset.month);
+      } else if (button.dataset.action === 'cancel-edit') {
+        this.editingMonth = null;
+        this.renderHistory();
       }
+    });
+    this.ui.historyTableContainer.addEventListener('input', (e) => {
+      if (!e.target.classList.contains('actual-paid-input')) {
+        return;
+      }
+      // The actual top-up is exactly 25% of what was paid in — show it live.
+      const pence = UI.poundsToPence(e.target.value);
+      const display = e.target.closest('tr').querySelector('.auto-topup-value');
+      const topUp = CostCalculator.deriveGovTopUp(pence);
+      display.textContent = topUp != null ? formatGBP(topUp) : '—';
     });
   }
 
@@ -190,7 +208,39 @@ export class App {
   }
 
   renderHistory() {
-    this.ui.renderHistory(this.historyStore.load());
+    this.ui.renderHistory(this.historyStore.load(), this.editingMonth);
+  }
+
+  editMonth(monthKey) {
+    this.editingMonth = monthKey;
+    this.renderHistory();
+  }
+
+  // Apply the inline-edit form of a history row: estimates may be corrected
+  // and the actual deposit recorded. The actual top-up is always derived
+  // from what was paid in, never entered by hand.
+  saveMonthEdit(monthKey) {
+    const row = this.ui.historyTableContainer.querySelector(`tr[data-month="${monthKey}"]`);
+    if (!row) {
+      return;
+    }
+    const field = name => UI.poundsToPence(row.querySelector(`[data-field="${name}"]`).value);
+    const actualUserPaid = field('actualUserPaid');
+    try {
+      this.historyStore.updateEntry(monthKey, {
+        totalMonthlyCost: field('totalMonthlyCost'),
+        govContribution: field('govContribution'),
+        userPays: field('userPays'),
+        actualUserPaid: actualUserPaid > 0 ? actualUserPaid : null,
+        actualGovTopUp: CostCalculator.deriveGovTopUp(actualUserPaid)
+      });
+      this.editingMonth = null;
+      this.renderHistory();
+      this.prefillGovContribution();
+      this.calculate();
+    } catch (err) {
+      alert(`Could not update the entry: ${err.message}`);
+    }
   }
 
   exportHistory() {
