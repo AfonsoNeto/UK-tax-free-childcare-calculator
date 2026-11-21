@@ -65,7 +65,7 @@ The calculation and storage logic is covered by tests that use Node.js's built-i
 npm test
 ```
 
-Requires Node.js 18 or newer.
+Requires Node.js 18 or newer. The tests also run automatically on every push and pull request via GitHub Actions.
 
 ## Technologies Used
 
