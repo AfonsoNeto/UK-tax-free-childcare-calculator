@@ -53,7 +53,10 @@ export class App {
     const child = this.childStore.getActiveChild();
     const { children } = this.childStore.load();
     this.ui.setPeriodAnchor(this.settings.getPeriodAnchorMonth());
-    this.ui.leftoverBalanceInput.value = (this.settings.getLeftoverBalance() / 100).toFixed(2);
+    const leftover = this.settings.getLeftoverBalance();
+    this.ui.leftoverBalanceInput.value = (leftover / 100).toFixed(2);
+    // Make a restored balance visible instead of hiding it in a collapsed section
+    this.ui.leftoverDisclosure.open = leftover > 0;
     this.ui.setMode(this.settings.getInputMode());
     this.ui.renderChildSelect(children, child.id);
     this.ui.renderChildrenSettings(children);
@@ -65,6 +68,7 @@ export class App {
       this.calculate();
     });
     this.ui.govContributionInput.addEventListener('input', () => this.calculate());
+    this.ui.monthlyTotalInput.addEventListener('input', () => this.calculate());
     this.ui.leftoverBalanceInput.addEventListener('input', () => {
       this.settings.setLeftoverBalance(UI.poundsToPence(this.ui.leftoverBalanceInput.value));
       this.calculate();
@@ -166,6 +170,8 @@ export class App {
   prefillGovContribution() {
     const [year, month] = this.ui.monthYearInput.value.split('-').map(Number);
     if (!year || !month) {
+      // No month selected: drop the stale period note with the results
+      this.ui.allowanceNote.textContent = '';
       return;
     }
     const anchorMonth = this.ui.getPeriodAnchor();
@@ -193,6 +199,12 @@ export class App {
       dayRates: inputs.totalMonthlyCost > 0 ? null : inputs.currentDayRates
     });
     this.renderHistory();
+    // Make the save visible: flash the button and reveal the collapsed
+    // History section where the new row just landed.
+    this.ui.flashSaved();
+    if (!this.ui.historySection.open) {
+      this.ui.historySection.open = true;
+    }
   }
 
   loadMonth(monthKey) {
@@ -200,6 +212,8 @@ export class App {
     if (!entry) {
       return;
     }
+    this.editingMonth = null;
+    this.renderHistory();
     this.ui.setMonth(monthKey);
     if (entry.dayRates && Object.keys(entry.dayRates).length > 0) {
       this.ui.setMode('daily');

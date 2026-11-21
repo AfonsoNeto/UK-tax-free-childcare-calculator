@@ -42,8 +42,13 @@
   background-color: #FFF5F5;
 }
 
+#history-table-container {
+  overflow-x: auto;
+}
+
 .history-table {
   width: 100%;
+  min-width: 560px;
   border-collapse: collapse;
   font-size: 0.875rem;
 }

@@ -14,6 +14,7 @@ export class UI {
     this.monthlyTotalGroup = document.getElementById('monthly-total-group');
     this.monthlyTotalInput = document.getElementById('monthly-total');
     this.leftoverBalanceInput = document.getElementById('leftover-balance');
+    this.leftoverDisclosure = document.getElementById('leftover-disclosure');
     this.useLastRatesButton = document.getElementById('use-last-rates');
     this.useLastTotalButton = document.getElementById('use-last-total');
     this.modeRadios = document.querySelectorAll('input[name="input-mode"]');
@@ -105,8 +106,8 @@ export class UI {
   renderChildrenSettings(children) {
     this.childrenList.innerHTML = children.map(child => `
       <div class="flex items-center gap-2 mb-2">
-        <input type="text" class="input child-name-input" data-id="${UI.escapeHtml(child.id)}" value="${UI.escapeHtml(child.name)}">
-        <button type="button" class="btn btn-small btn-danger" data-action="remove-child" data-id="${UI.escapeHtml(child.id)}" ${children.length <= 1 ? 'disabled' : ''}>Delete</button>
+        <input type="text" class="input child-name-input" data-id="${UI.escapeHtml(child.id)}" value="${UI.escapeHtml(child.name)}" aria-label="Name for ${UI.escapeHtml(child.name)}">
+        <button type="button" class="btn btn-small btn-danger" data-action="remove-child" data-id="${UI.escapeHtml(child.id)}" aria-label="Delete ${UI.escapeHtml(child.name)}" ${children.length <= 1 ? 'disabled' : ''}>Delete</button>
       </div>`).join('');
   }
 
@@ -129,9 +130,11 @@ export class UI {
     });
   }
 
-  // User-facing inputs are in pounds; convert to the integer pence used internally.
+  // User-facing inputs are in pounds; convert to the integer pence used
+  // internally. Negative amounts are meaningless here and would distort
+  // the allowance math, so they clamp to zero.
   static poundsToPence(value) {
-    return Math.round((parseFloat(value) || 0) * 100);
+    return Math.max(0, Math.round((parseFloat(value) || 0) * 100));
   }
 
   getInputs() {
@@ -199,6 +202,16 @@ export class UI {
 
   setMonthlyTotal(totalPence) {
     this.monthlyTotalInput.value = totalPence / 100;
+  }
+
+  // Brief confirmation on the save button so the action is visible even
+  // when the History section stays collapsed.
+  flashSaved() {
+    this.saveMonthButton.textContent = 'Saved ✓';
+    clearTimeout(this.savedFlashTimer);
+    this.savedFlashTimer = setTimeout(() => {
+      this.saveMonthButton.textContent = 'Save this month';
+    }, 1600);
   }
 
   // Clear the cost inputs when switching children: rates, invoice total
