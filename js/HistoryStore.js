@@ -20,15 +20,27 @@ function isValidEntry(entry) {
     && Number.isInteger(Number(entry.userPays)) && Number(entry.userPays) >= 0;
 }
 
+// Optional money field: absent, null or empty means "not recorded".
+function optionalPence(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+}
+
 function normalizeEntry(entry) {
   return {
     totalMonthlyCost: Number(entry.totalMonthlyCost),
     govContribution: Number(entry.govContribution),
     userPays: Number(entry.userPays),
-    transferAmount: Number.isInteger(Number(entry.transferAmount)) ? Number(entry.transferAmount) : null,
-    leftoverBefore: Number.isInteger(Number(entry.leftoverBefore)) ? Number(entry.leftoverBefore) : null,
+    transferAmount: optionalPence(entry.transferAmount),
+    leftoverBefore: optionalPence(entry.leftoverBefore),
+    actualUserPaid: optionalPence(entry.actualUserPaid),
+    actualGovTopUp: optionalPence(entry.actualGovTopUp),
     dayRates: entry.dayRates && typeof entry.dayRates === 'object' ? entry.dayRates : null,
-    savedAt: typeof entry.savedAt === 'string' ? entry.savedAt : ''
+    savedAt: typeof entry.savedAt === 'string' ? entry.savedAt : '',
+    updatedAt: typeof entry.updatedAt === 'string' ? entry.updatedAt : ''
   };
 }
 
@@ -47,8 +59,11 @@ function normalizeMonthEntries(parsed, fromV1) {
       userPays: Number(entry.userPays) * scale,
       transferAmount: fromV1 ? Math.round(Number(entry.transferAmount) * 100) : entry.transferAmount,
       leftoverBefore: fromV1 ? Math.round(Number(entry.leftoverBefore) * 100) : entry.leftoverBefore,
+      actualUserPaid: fromV1 ? Math.round(Number(entry.actualUserPaid) * 100) : entry.actualUserPaid,
+      actualGovTopUp: fromV1 ? Math.round(Number(entry.actualGovTopUp) * 100) : entry.actualGovTopUp,
       dayRates: entry.dayRates,
-      savedAt: entry.savedAt
+      savedAt: entry.savedAt,
+      updatedAt: entry.updatedAt
     });
     if (fromV1 && candidate.dayRates) {
       candidate.dayRates = Object.fromEntries(
@@ -142,6 +157,27 @@ export class HistoryStore {
     this.persist(history);
   }
 
+  // Merge edits into a saved entry (estimates and/or actual amounts).
+  // savedAt keeps the original save time; updatedAt records the edit.
+  updateEntry(monthKey, fields) {
+    if (!MONTH_KEY_PATTERN.test(monthKey)) {
+      throw new Error(`Invalid month key: ${monthKey}`);
+    }
+    const history = this.load();
+    const existing = history[monthKey];
+    if (!existing) {
+      throw new Error(`No saved entry for ${monthKey}`);
+    }
+    const merged = normalizeEntry({ ...existing, ...fields, savedAt: existing.savedAt });
+    if (!isValidEntry(merged)) {
+      throw new Error('Invalid history entry');
+    }
+    merged.updatedAt = new Date().toISOString();
+    history[monthKey] = merged;
+    this.persist(history);
+    return merged;
+  }
+
   // Sum of the government contributions saved for the months of the same
   // top-up period that fall before the given month, to prefill the input.
   periodGovContributionBefore(year, month, anchorMonth = 1) {
@@ -153,10 +189,10 @@ export class HistoryStore {
       .reduce((sum, key) => (history[key] ? sum + history[key].govContribution : sum), 0);
   }
 
-  // Merge a JSON export into the stored history; the newest savedAt wins.
-  // Accepts both the v1 (bare month object, pounds) and v2 (versioned
-  // wrapper, pence) formats. Invalid months/entries are skipped.
-  // Returns { imported, total }.
+  // Merge a JSON export into the stored history; the entry with the newest
+  // savedAt/updatedAt stamp wins. Accepts both the v1 (bare month object,
+  // pounds) and v2 (versioned wrapper, pence) formats. Invalid months and
+  // entries are skipped. Returns { imported, total }.
   importJSON(text) {
     let parsed;
     try {
@@ -169,10 +205,11 @@ export class HistoryStore {
       throw new Error('expected an object keyed by month');
     }
     const history = this.load();
+    const stamp = entry => entry.updatedAt || entry.savedAt || '';
     let imported = 0;
     for (const [key, entry] of Object.entries(incoming)) {
       const existing = history[key];
-      if (!existing || (entry.savedAt || '') > existing.savedAt) {
+      if (!existing || stamp(entry) > stamp(existing)) {
         history[key] = entry;
         imported++;
       }

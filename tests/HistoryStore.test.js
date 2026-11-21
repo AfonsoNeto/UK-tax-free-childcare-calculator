@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { HistoryStore, findLatestRates, findLatestMonthlyTotal, findLatestEntry } from '../js/HistoryStore.js';
+import { CostCalculator } from '../js/CostCalculator.js';
 
 // Minimal localStorage stand-in so the store can be tested without a DOM.
 function memoryStorage() {
@@ -86,6 +87,65 @@ test('removeEntry deletes a month', () => {
   store.saveEntry('2026-01', entry());
   store.removeEntry('2026-01');
   assert.deepEqual(store.load(), {});
+});
+
+test('updateEntry merges edits and records updatedAt while keeping savedAt', async () => {
+  const storage = memoryStorage();
+  const store = new HistoryStore(storage);
+  const saved = store.saveEntry('2026-01', entry());
+  const savedAt = saved.savedAt;
+  await new Promise(resolve => setTimeout(resolve, 5));
+
+  const updated = store.updateEntry('2026-01', {
+    totalMonthlyCost: 85000,
+    actualUserPaid: 87360,
+    actualGovTopUp: CostCalculator.deriveGovTopUp(87360)
+  });
+
+  assert.equal(updated.savedAt, savedAt);
+  assert.ok(updated.updatedAt > savedAt);
+  const history = store.load();
+  assert.equal(history['2026-01'].totalMonthlyCost, 85000);
+  assert.equal(history['2026-01'].actualUserPaid, 87360);
+  assert.equal(history['2026-01'].actualGovTopUp, 21840);
+  assert.equal(history['2026-01'].govContribution, 16000); // untouched estimate
+});
+
+test('updateEntry rejects unknown months and invalid values', () => {
+  const store = new HistoryStore(memoryStorage());
+  store.saveEntry('2026-01', entry());
+  assert.throws(() => store.updateEntry('2026-02', { totalMonthlyCost: 85000 }));
+  assert.throws(() => store.updateEntry('2026-01', { totalMonthlyCost: 'oops' }));
+});
+
+test('importJSON lets a locally edited entry (updatedAt) beat a newer savedAt export', async () => {
+  const store = new HistoryStore(memoryStorage());
+  store.saveEntry('2026-01', entry({ totalMonthlyCost: 90000 }));
+  await new Promise(resolve => setTimeout(resolve, 5));
+
+  // Export saved after the original save but before the local edit below
+  const exportSavedAt = new Date().toISOString();
+  await new Promise(resolve => setTimeout(resolve, 5));
+
+  store.updateEntry('2026-01', { actualUserPaid: 87360, actualGovTopUp: 21840 });
+
+  store.importJSON(JSON.stringify({
+    version: 2,
+    months: {
+      '2026-01': entry({ totalMonthlyCost: 1, govContribution: 1, userPays: 1, savedAt: exportSavedAt })
+    }
+  }));
+
+  const history = store.load();
+  assert.equal(history['2026-01'].totalMonthlyCost, 90000); // local edit survived
+  assert.equal(history['2026-01'].actualUserPaid, 87360);
+});
+
+test('deriveGovTopUp is 25% of the actual deposit', () => {
+  assert.equal(CostCalculator.deriveGovTopUp(87360), 21840);
+  assert.equal(CostCalculator.deriveGovTopUp(80000), 20000);
+  assert.equal(CostCalculator.deriveGovTopUp(3), 1); // rounds to whole pence
+  assert.equal(CostCalculator.deriveGovTopUp(0), null);
 });
 
 test('periodGovContributionBefore sums earlier months of the same period', () => {

@@ -74,3 +74,31 @@
 .history-table td.actions .btn {
   margin-left: 0.4rem;
 }
+
+.history-table td.num.differs {
+  color: #B7791F;
+  font-weight: 600;
+}
+
+.history-table td.num.muted {
+  color: #A0AEC0;
+}
+
+.history-table .edit-input {
+  width: 5.5rem;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.8125rem;
+  text-align: right;
+}
+
+.history-table .editing-row td {
+  vertical-align: middle;
+}
+
+.history-table .auto-topup-cell {
+  white-space: nowrap;
+}
+
+.history-table .auto-topup-value {
+  font-weight: 600;
+}
