@@ -22,6 +22,7 @@ A simple web application to help UK parents estimate their monthly nursery costs
   - **Export/Import JSON:** download the history as `tfc-history.json` for backup, or import it into another browser.
 - **Multiple children:** each child gets their own rates, history, period anchor, leftover balance and input mode, with a switcher at the top of the calculator (appears once a second child is added in Settings) and full data cleanup on removal. JSON exports and imports cover all children.
 - **Theme Switcher:** Toggle between light and dark modes for comfortable viewing.
+- **Installable & offline:** a web app manifest and service worker let you install the calculator to your home screen and keep using it without a connection.
 
 ![Monthly total input](images/screenshot-monthly-mode.png)
 
@@ -61,6 +62,10 @@ A simple web application to help UK parents estimate their monthly nursery costs
 4.  **Manage your history:**
     -   Use **Load** on a saved month to bring its inputs back into the form.
     -   Use **Export JSON** to download your history as a file, and **Import JSON** to restore it (e.g. in another browser).
+
+## Running online
+
+The site deploys to GitHub Pages automatically on every push to `master` (see `.github/workflows/deploy.yml`) at https://afonsoneto.github.io/UK-tax-free-childcare-calculator/ — installable on your phone like an app thanks to the PWA support. If the first deployment fails because Pages is not yet enabled, flip once to **Settings → Pages → Source: GitHub Actions**.
 
 ## Running the tests
 
