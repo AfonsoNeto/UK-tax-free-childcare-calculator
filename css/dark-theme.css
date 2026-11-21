@@ -100,6 +100,18 @@ body.dark-theme {
   border-color: var(--border-color);
 }
 
+.dark-theme .history-chart .chart-user {
+  fill: #68D391;
+}
+
+.dark-theme .history-chart .chart-gov {
+  fill: #63B3ED;
+}
+
+.dark-theme .history-chart .chart-label {
+  fill: var(--text-gray-500);
+}
+
 .dark-theme .btn-primary {
   background-color: #4299E1;
   color: #FFFFFF;
